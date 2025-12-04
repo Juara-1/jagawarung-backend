@@ -17,6 +17,31 @@ const config: Config.InitialOptions = {
   moduleFileExtensions: ['ts', 'js', 'json'],
   verbose: true,
   setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
+  projects: [
+    {
+      displayName: 'unit',
+      testMatch: ['<rootDir>/src/**/*.unit.test.ts'],
+      setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
+      preset: 'ts-jest',
+      testEnvironment: 'node',
+      moduleFileExtensions: ['ts', 'js', 'json'],
+      transform: {
+        '^.+\\.ts$': 'ts-jest',
+      },
+    },
+    {
+      displayName: 'integration',
+      testMatch: ['<rootDir>/src/**/*.integration.test.ts'],
+      setupFilesAfterEnv: ['<rootDir>/src/tests/integration/setup.ts'],
+      testTimeout: 30000,
+      preset: 'ts-jest',
+      testEnvironment: 'node',
+      moduleFileExtensions: ['ts', 'js', 'json'],
+      transform: {
+        '^.+\\.ts$': 'ts-jest',
+      },
+    },
+  ],
 };
 
 export default config;

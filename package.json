@@ -9,7 +9,11 @@
     "start": "node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest --testPathPatterns=unit",
+    "test:integration": "jest --testPathPatterns=integration",
+    "test:integration:watch": "jest --testPathPatterns=integration --watch",
+    "test:integration:coverage": "jest --testPathPatterns=integration --coverage"
   },
   "keywords": [
     "nodejs",
