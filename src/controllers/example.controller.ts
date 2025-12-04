@@ -4,7 +4,31 @@ import { sendSuccess, sendError } from '../utils/response';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 
-// GET /api/examples - Get all examples
+/**
+ * Example object
+ * @typedef {object} Example
+ * @property {string} id - Example ID
+ * @property {string} name - Example name
+ * @property {string} description - Example description
+ * @property {string} user_id - User ID
+ * @property {string} created_at - Creation timestamp
+ * @property {string} updated_at - Last update timestamp
+ */
+
+/**
+ * Create example request
+ * @typedef {object} CreateExampleRequest
+ * @property {string} name.required - Example name
+ * @property {string} description - Example description
+ */
+
+/**
+ * GET /api/examples
+ * @summary Get all examples
+ * @tags Examples
+ * @return {array<Example>} 200 - List of examples retrieved successfully
+ * @return {object} 400 - Bad request
+ */
 export const getAll = async (
   req: Request,
   res: Response,
@@ -24,7 +48,15 @@ export const getAll = async (
   }
 };
 
-// GET /api/examples/:id - Get example by ID
+/**
+ * GET /api/examples/{id}
+ * @summary Get example by ID
+ * @tags Examples
+ * @param {string} id.path.required - Example ID
+ * @return {Example} 200 - Example retrieved successfully
+ * @return {object} 404 - Example not found
+ * @return {object} 400 - Bad request
+ */
 export const getById = async (
   req: Request,
   res: Response,
@@ -47,7 +79,16 @@ export const getById = async (
   }
 };
 
-// POST /api/examples - Create new example
+/**
+ * POST /api/examples
+ * @summary Create new example
+ * @tags Examples
+ * @security BearerAuth
+ * @param {CreateExampleRequest} request.body.required - Example information
+ * @return {Example} 201 - Example created successfully
+ * @return {object} 400 - Bad request
+ * @return {object} 401 - Unauthorized
+ */
 export const create = async (
   req: AuthRequest,
   res: Response,
@@ -68,7 +109,17 @@ export const create = async (
   }
 };
 
-// PUT /api/examples/:id - Update example
+/**
+ * PUT /api/examples/{id}
+ * @summary Update example
+ * @tags Examples
+ * @security BearerAuth
+ * @param {string} id.path.required - Example ID
+ * @param {CreateExampleRequest} request.body.required - Updated example information
+ * @return {Example} 200 - Example updated successfully
+ * @return {object} 400 - Bad request
+ * @return {object} 401 - Unauthorized
+ */
 export const update = async (
   req: AuthRequest,
   res: Response,
@@ -93,7 +144,16 @@ export const update = async (
   }
 };
 
-// DELETE /api/examples/:id - Delete example
+/**
+ * DELETE /api/examples/{id}
+ * @summary Delete example
+ * @tags Examples
+ * @security BearerAuth
+ * @param {string} id.path.required - Example ID
+ * @return {object} 200 - Example deleted successfully
+ * @return {object} 400 - Bad request
+ * @return {object} 401 - Unauthorized
+ */
 export const remove = async (
   req: AuthRequest,
   res: Response,
