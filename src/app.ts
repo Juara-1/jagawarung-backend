@@ -47,7 +47,7 @@ app.use(express.urlencoded({ extended: true }));
  * @tags System
  * @return {object} 200 - success response
  */
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 

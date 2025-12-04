@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../config/supabase';
-import { sendSuccess, sendError } from '../utils/response';
+import { sendSuccess } from '../utils/response';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 
@@ -30,7 +30,7 @@ import { AuthRequest } from '../middleware/auth';
  * @return {object} 400 - Bad request
  */
 export const getAll = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ) => {
