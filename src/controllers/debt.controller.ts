@@ -4,6 +4,38 @@ import { sendSuccess } from '../utils/response';
 import { AppError } from '../middleware/errorHandler';
 import { UpsertDebtDTO } from '../models/debt.model';
 
+// GET /api/debts?debtorName= - Get debt by debtor name
+export const getDebtByName = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { debtorName } = req.query;
+
+    if (!debtorName || typeof debtorName !== 'string') {
+      throw new AppError('debtorName query parameter is required', 400);
+    }
+
+    const { data, error } = await supabase
+      .from('debts')
+      .select('*')
+      .eq('debtor_name', debtorName)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new AppError('Debt not found for this debtor', 404);
+      }
+      throw new AppError(error.message, 400);
+    }
+
+    sendSuccess(res, data, 'Debt retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
 // POST /api/debts/upsert - Upsert debt by debtor name
 export const upsertDebt = async (
   req: Request,
