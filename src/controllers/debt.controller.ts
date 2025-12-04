@@ -78,3 +78,34 @@ export const upsertDebt = async (
     next(error);
   }
 };
+
+// DELETE /api/debts?debtorName= - Delete debt by debtor name
+export const deleteDebtByName = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { debtorName } = req.query;
+
+    if (!debtorName || typeof debtorName !== 'string') {
+      throw new AppError('debtorName query parameter is required', 400);
+    }
+
+    const { data, error } = await supabase
+      .from('debts')
+      .delete()
+      .eq('debtor_name', debtorName)
+      .select();
+
+    if (error) throw new AppError(error.message, 400);
+
+    if (!data || data.length === 0) {
+      throw new AppError('Debt not found for this debtor', 404);
+    }
+
+    sendSuccess(res, data[0], 'Debt deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
