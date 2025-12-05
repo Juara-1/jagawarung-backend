@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../config/supabase';
 import { sendSuccess } from '../utils/response';
 import { AppError } from '../middleware/errorHandler';
+import { TransactionService } from '../services/transaction.service';
 import {
   Transaction,
   TransactionResponse,
@@ -204,77 +205,16 @@ export const getTransactions = async (
  * @return {TransactionResponse} 201 - Transaction created successfully
  * @return {object} 400 - Validation error
  */
+const transactionService = TransactionService.withSupabase();
+
 export const createTransaction = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const {
-      debtorName = null,
-      nominal,
-      type,
-      note = null,
-      invoiceUrl = null,
-      invoiceData = null,
-    } = req.body as CreateTransactionDTO;
-
-    if (typeof nominal !== 'number' || Number.isNaN(nominal) || nominal <= 0) {
-      throw new AppError('nominal must be a positive number', 400);
-    }
-
-    if (!type || typeof type !== 'string' || !isTransactionType(type)) {
-      throw new AppError(
-        `type must be one of: ${TRANSACTION_TYPES.join(', ')}`,
-        400
-      );
-    }
-
-    if (type === 'debts' && (!debtorName || typeof debtorName !== 'string')) {
-      throw new AppError('debtorName is required for debt transactions', 400);
-    }
-
-    if (debtorName && typeof debtorName !== 'string') {
-      throw new AppError('debtorName must be a string when provided', 400);
-    }
-
-    if (note && typeof note !== 'string') {
-      throw new AppError('note must be a string when provided', 400);
-    }
-
-    if (invoiceUrl && typeof invoiceUrl !== 'string') {
-      throw new AppError('invoiceUrl must be a string when provided', 400);
-    }
-
-    const payload = {
-      debtor_name: debtorName,
-      nominal,
-      type,
-      note,
-      invoice_url: invoiceUrl,
-      invoice_data: invoiceData,
-    };
-
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      throw new AppError(`Failed to create transaction: ${error.message}`, 400);
-    }
-
-    const response: TransactionResponse = {
-      id: data.id,
-      nominal: data.nominal,
-      debtor_name: data.debtor_name,
-      invoice_url: data.invoice_url,
-      invoice_data: data.invoice_data,
-      note: data.note,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
+    const payload = req.body as CreateTransactionDTO;
+    const response = await transactionService.create(payload);
 
     sendSuccess(res, response, 'Transaction created successfully', 201);
   } catch (error) {
