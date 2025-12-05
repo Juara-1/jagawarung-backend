@@ -1,10 +1,16 @@
 import { AppError } from '../middleware/errorHandler';
 import {
   CreateTransactionDTO,
+  PaginatedTransactionsResponse,
   Transaction,
+  TransactionFilterOptions,
   TransactionResponse,
   TRANSACTION_TYPES,
   TransactionSummary,
+  TransactionListQueryParams,
+  TransactionOrderDirection,
+  TransactionOrderField,
+  TransactionType,
   isTransactionType,
   UpdateTransactionDTO,
 } from '../models/transaction.model';
@@ -14,6 +20,7 @@ import {
 } from '../repositories/transaction.repository';
 
 export interface ITransactionService {
+  list(query: TransactionListQueryParams): Promise<PaginatedTransactionsResponse>;
   create(payload: CreateTransactionDTO): Promise<TransactionResponse>;
   delete(id: string): Promise<TransactionResponse>;
   update(id: string, payload: UpdateTransactionDTO): Promise<TransactionResponse>;
@@ -27,12 +34,73 @@ export class TransactionService implements ITransactionService {
     return new TransactionService(new SupabaseTransactionRepository());
   }
 
+  async list(query: TransactionListQueryParams): Promise<PaginatedTransactionsResponse> {
+    const filters = this.parseListQuery(query);
+    return this.repository.listPaginated(filters);
+  }
+
   async create(payload: CreateTransactionDTO): Promise<TransactionResponse> {
     this.validatePayload(payload);
 
     const transaction = await this.repository.create(payload);
 
     return this.toResponse(transaction);
+  }
+
+  private parseListQuery(query: TransactionListQueryParams): TransactionFilterOptions {
+    const page = Math.max(parseInt(query.page || '1', 10), 1);
+    const perPageRaw = Math.min(Math.max(parseInt(query.per_page || '10', 10), 1), 100);
+    const orderByRaw = (query.order_by as TransactionOrderField) || 'created_at';
+    const orderDirectionRaw = (query.order_direction as TransactionOrderDirection) || 'desc';
+
+    const allowedOrderFields: TransactionOrderField[] = ['created_at', 'updated_at', 'nominal'];
+    const allowedOrderDirections: TransactionOrderDirection[] = ['asc', 'desc'];
+
+    if (!allowedOrderFields.includes(orderByRaw)) {
+      throw new AppError(
+        `Invalid order_by value. Allowed values: ${allowedOrderFields.join(', ')}`,
+        400
+      );
+    }
+
+    if (!allowedOrderDirections.includes(orderDirectionRaw)) {
+      throw new AppError('Invalid order_direction value. Allowed values: asc, desc', 400);
+    }
+
+    const note = query.note || undefined;
+
+    const typeFilterList = (query.type || '')
+      .split(',')
+      .map((type) => type.trim().toLowerCase())
+      .filter((type) => type.length > 0) as TransactionType[];
+
+    if (typeFilterList.length > 0) {
+      const invalidTypes = typeFilterList.filter((type) => !isTransactionType(type));
+      if (invalidTypes.length > 0) {
+        throw new AppError('Invalid type value. Allowed values: spending, earning, debts', 400);
+      }
+    }
+
+    const createdFrom = query.created_from ? this.validateDate(query.created_from, 'created_from') : undefined;
+    const createdTo = query.created_to ? this.validateDate(query.created_to, 'created_to') : undefined;
+
+    return {
+      page,
+      perPage: perPageRaw,
+      orderBy: orderByRaw,
+      orderDirection: orderDirectionRaw,
+      note,
+      types: typeFilterList.length ? typeFilterList : undefined,
+      createdFrom,
+      createdTo,
+    };
+  }
+
+  private validateDate(value: string, field: string): string {
+    if (Number.isNaN(Date.parse(value))) {
+      throw new AppError(`Invalid ${field} date. Use ISO format`, 400);
+    }
+    return value;
   }
 
   async delete(id: string): Promise<TransactionResponse> {

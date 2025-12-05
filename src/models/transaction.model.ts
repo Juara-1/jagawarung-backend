@@ -54,9 +54,7 @@ export interface PaginationInfo {
 }
 
 export interface PaginatedTransactionsResponse {
-  success: boolean;
-  message: string;
-  data: TransactionResponse[];
+  transactions: TransactionResponse[];
   pagination: PaginationInfo;
 }
 
@@ -64,4 +62,30 @@ export interface TransactionSummary {
   total_debts: number;
   total_spending: number;
   total_earning: number;
+}
+
+export type TransactionOrderField = 'created_at' | 'updated_at' | 'nominal';
+
+export type TransactionOrderDirection = 'asc' | 'desc';
+
+export interface TransactionListQueryParams {
+  page?: string;
+  per_page?: string;
+  order_by?: string;
+  order_direction?: string;
+  note?: string;
+  type?: string;
+  created_from?: string;
+  created_to?: string;
+}
+
+export interface TransactionFilterOptions {
+  page: number;
+  perPage: number;
+  orderBy: TransactionOrderField;
+  orderDirection: TransactionOrderDirection;
+  note?: string;
+  types?: TransactionType[];
+  createdFrom?: string;
+  createdTo?: string;
 }
