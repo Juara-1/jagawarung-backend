@@ -8,6 +8,7 @@ Backend API for Jagawarung built with Node.js, TypeScript, Express, and Supabase
 - **TypeScript** - Type-safe JavaScript
 - **Express** - Web framework
 - **Supabase** - Backend as a Service (Database, Auth, Storage)
+- **OpenAI-compatible AI** - AI agent endpoint powered by configurable provider
 
 ## 📁 Project Structure
 
@@ -63,6 +64,17 @@ Update the `.env` file with your Supabase project details:
 - `SUPABASE_URL`: Your Supabase project URL
 - `SUPABASE_ANON_KEY`: Your Supabase anonymous key
 - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key (for admin operations)
+
+Configure AI provider credentials (OpenAI-compatible by default):
+- `AI_PROVIDER`: Provider identifier (default: `openai-compatible`)
+- `AI_BASE_URL`: Base URL for the AI API (default: `https://api.openai.com/v1`)
+- `AI_API_KEY`: API key for the AI provider
+- `AI_MODEL`: Default model (e.g., `gpt-4o-mini`)
+- `AI_REQUEST_TIMEOUT_MS`: Optional timeout in ms (default: 30000)
+
+Optional MCP client settings for future integration:
+- `MCP_SERVER_URL`: External MCP server endpoint
+- `MCP_API_KEY`: API key or token for the MCP server
 
 ### 3. Create Supabase Table (Example)
 
@@ -133,6 +145,9 @@ Visit `http://localhost:3000/health` to check if the server is running.
 - `POST /api/examples` - Create new example (requires auth)
 - `PUT /api/examples/:id` - Update example (requires auth)
 - `DELETE /api/examples/:id` - Delete example (requires auth)
+
+### AI Agent
+- `POST /api/agent` - Send a prompt to the AI agent and receive the model response
 
 ## 🔐 Authentication
 
