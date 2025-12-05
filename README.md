@@ -8,7 +8,7 @@ Backend API for Jagawarung built with Node.js, TypeScript, Express, and Supabase
 - **TypeScript** - Type-safe JavaScript
 - **Express** - Web framework
 - **Supabase** - Backend as a Service (Database, Auth, Storage)
-- **OpenAI-compatible AI** - AI agent endpoint powered by configurable provider
+- **OpenAI-compatible AI + MCP** - AI agent endpoint plus Supabase MCP tool invocations
 
 ## 📁 Project Structure
 
@@ -72,9 +72,9 @@ Configure AI provider credentials (OpenAI-compatible by default):
 - `AI_MODEL`: Default model (e.g., `gpt-4o-mini`)
 - `AI_REQUEST_TIMEOUT_MS`: Optional timeout in ms (default: 30000)
 
-Optional MCP client settings for future integration:
-- `MCP_SERVER_URL`: External MCP server endpoint
-- `MCP_API_KEY`: API key or token for the MCP server
+Optional MCP client settings:
+- `MCP_SERVER_URL`: Supabase MCP server endpoint (e.g. `https://mcp.supabase.com/mcp?project_ref=...`)
+- `MCP_API_KEY`: Bearer token for the MCP server
 
 ### 3. Create Supabase Table (Example)
 
@@ -147,7 +147,7 @@ Visit `http://localhost:3000/health` to check if the server is running.
 - `DELETE /api/examples/:id` - Delete example (requires auth)
 
 ### AI Agent
-- `POST /api/agent` - Send a prompt to the AI agent and receive the model response
+- `POST /api/agent` - Send a prompt to the AI agent, or set `useMcp=true` with `toolName` to call Supabase MCP tools
 
 ## 🔐 Authentication
 
