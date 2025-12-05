@@ -80,3 +80,68 @@ export const transactionUpdateSchema = z
 export const transactionIdParamSchema = z.object({
   id: z.uuid({ error: 'id must be a valid UUID' }),
 });
+
+// Constants for list query validation
+const ORDER_FIELDS = ['created_at', 'updated_at', 'nominal'] as const;
+const ORDER_DIRECTIONS = ['asc', 'desc'] as const;
+const TIME_RANGES = ['day', 'week', 'month'] as const;
+
+// Helper to validate ISO date string
+const isoDateStringSchema = z.string().refine(
+  (value) => !Number.isNaN(Date.parse(value)),
+  { message: 'Invalid date format. Use ISO format' }
+);
+
+// Helper to parse and validate type filter (comma-separated list)
+const typeFilterSchema = z
+  .string()
+  .optional()
+  .transform((value) => {
+    if (!value) return undefined;
+    const types = value
+      .split(',')
+      .map((t) => t.trim().toLowerCase())
+      .filter((t) => t.length > 0);
+    return types.length > 0 ? types : undefined;
+  })
+  .refine(
+    (types) => {
+      if (!types) return true;
+      return types.every((type) => TRANSACTION_TYPES.includes(type as (typeof TRANSACTION_TYPES)[number]));
+    },
+    { message: 'Invalid type value. Allowed values: spending, earning, debts' }
+  )
+  .transform((types) => types as (typeof TRANSACTION_TYPES)[number][] | undefined);
+
+export const transactionListQuerySchema = z.object({
+  page: z
+    .string()
+    .optional()
+    .transform((val) => {
+      const parsed = parseInt(val || '1', 10);
+      return Math.max(parsed, 1);
+    }),
+  per_page: z
+    .string()
+    .optional()
+    .transform((val) => {
+      const parsed = parseInt(val || '10', 10);
+      return Math.min(Math.max(parsed, 1), 100);
+    }),
+  order_by: z.enum(ORDER_FIELDS, {
+    error: () => `Invalid order_by value. Allowed values: ${ORDER_FIELDS.join(', ')}`,
+  }).optional().default('created_at'),
+  order_direction: z.enum(ORDER_DIRECTIONS, {
+    error: () => 'Invalid order_direction value. Allowed values: asc, desc',
+  }).optional().default('desc'),
+  note: z.string().optional(),
+  type: typeFilterSchema,
+  created_from: isoDateStringSchema.optional(),
+  created_to: isoDateStringSchema.optional(),
+});
+
+export const transactionSummaryQuerySchema = z.object({
+  time_range: z.enum(TIME_RANGES, {
+    error: () => 'Invalid time_range value. Allowed values: day, week, month',
+  }),
+});
