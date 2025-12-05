@@ -1,4 +1,3 @@
-import fetch, { Response } from 'node-fetch';
 import { config } from '../config';
 import { AppError } from '../middleware/errorHandler';
 
@@ -47,6 +46,14 @@ const buildHeaders = () => {
   };
 };
 
+const ensureFetchAvailable = (): typeof fetch => {
+  if (typeof fetch !== 'function') {
+    throw new AppError('Fetch API is not available in this environment', 500);
+  }
+
+  return fetch;
+};
+
 const handleErrorResponse = async (response: Response): Promise<never> => {
   let errorBody: any = {};
   try {
@@ -83,9 +90,10 @@ export const sendPrompt = async (
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+  const fetchFn = ensureFetchAvailable();
 
   try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    const response = await fetchFn(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: buildHeaders(),
       body: JSON.stringify(body),
