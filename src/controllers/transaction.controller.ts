@@ -9,6 +9,7 @@ import {
   CreateTransactionDTO,
   isTransactionType,
   TRANSACTION_TYPES,
+  UpdateTransactionDTO,
 } from '../models/transaction.model';
 
 /**
@@ -276,6 +277,160 @@ export const createTransaction = async (
     };
 
     sendSuccess(res, response, 'Transaction created successfully', 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const validateTransactionPayload = (
+  payload: Partial<CreateTransactionDTO>,
+  options: { isPartial?: boolean }
+) => {
+  const { debtorName = null, nominal, type, note = null, invoiceUrl = null } = payload;
+
+  if (!options.isPartial || nominal !== undefined) {
+    if (typeof nominal !== 'number' || Number.isNaN(nominal) || nominal <= 0) {
+      throw new AppError('nominal must be a positive number', 400);
+    }
+  }
+
+  if (!options.isPartial || type !== undefined) {
+    if (!type || typeof type !== 'string' || !isTransactionType(type)) {
+      throw new AppError(
+        `type must be one of: ${TRANSACTION_TYPES.join(', ')}`,
+        400
+      );
+    }
+  }
+
+  if (type === 'debts' && (!debtorName || typeof debtorName !== 'string')) {
+    throw new AppError('debtorName is required for debt transactions', 400);
+  }
+
+  if (debtorName && typeof debtorName !== 'string') {
+    throw new AppError('debtorName must be a string when provided', 400);
+  }
+
+  if (note && typeof note !== 'string') {
+    throw new AppError('note must be a string when provided', 400);
+  }
+
+  if (invoiceUrl && typeof invoiceUrl !== 'string') {
+    throw new AppError('invoiceUrl must be a string when provided', 400);
+  }
+};
+
+/**
+ * DELETE /api/transactions/{id}
+ * @summary Delete a transaction by ID
+ * @tags Transactions
+ * @param {string} id.path.required - Transaction ID
+ * @return {object} 200 - Transaction deleted successfully
+ * @return {object} 404 - Transaction not found
+ */
+export const deleteTransactionById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      throw new AppError('Transaction id is required', 400);
+    }
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error?.code === 'PGRST116') {
+      throw new AppError('Transaction not found', 404);
+    }
+
+    if (error) {
+      throw new AppError(`Failed to delete transaction: ${error.message}`, 400);
+    }
+
+    if (!data) {
+      throw new AppError('Transaction not found', 404);
+    }
+
+    sendSuccess(res, data, 'Transaction deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/transactions/{id}
+ * @summary Update a transaction by ID
+ * @tags Transactions
+ * @param {string} id.path.required - Transaction ID
+ * @param {CreateTransactionRequest} request.body.required - Updated transaction payload
+ * @return {TransactionResponse} 200 - Transaction updated successfully
+ * @return {object} 404 - Transaction not found
+ */
+export const updateTransactionById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      throw new AppError('Transaction id is required', 400);
+    }
+
+    const updatePayload = req.body as UpdateTransactionDTO;
+
+    validateTransactionPayload(updatePayload, { isPartial: false });
+
+    const payload = {
+      debtor_name: updatePayload.debtorName ?? null,
+      nominal: updatePayload.nominal!,
+      type: updatePayload.type!,
+      note: updatePayload.note ?? null,
+      invoice_url: updatePayload.invoiceUrl ?? null,
+      invoice_data: updatePayload.invoiceData ?? null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error?.code === 'PGRST116') {
+      throw new AppError('Transaction not found', 404);
+    }
+
+    if (error) {
+      throw new AppError(`Failed to update transaction: ${error.message}`, 400);
+    }
+
+    if (!data) {
+      throw new AppError('Transaction not found', 404);
+    }
+
+    const response: TransactionResponse = {
+      id: data.id,
+      nominal: data.nominal,
+      debtor_name: data.debtor_name,
+      invoice_url: data.invoice_url,
+      invoice_data: data.invoice_data,
+      note: data.note,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
+
+    sendSuccess(res, response, 'Transaction updated successfully');
   } catch (error) {
     next(error);
   }

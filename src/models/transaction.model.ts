@@ -37,6 +37,15 @@ export interface CreateTransactionDTO {
   note?: string | null;
 }
 
+export interface UpdateTransactionDTO {
+  debtorName?: string | null;
+  nominal?: number;
+  type?: TransactionType;
+  invoiceUrl?: string | null;
+  invoiceData?: Record<string, any> | null;
+  note?: string | null;
+}
+
 export interface PaginationInfo {
   page: number;
   per_page: number;

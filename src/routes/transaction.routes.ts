@@ -9,4 +9,10 @@ router.get('/', transactionController.getTransactions);
 // Create transaction
 router.post('/', transactionController.createTransaction);
 
+// Update transaction
+router.put('/:id', transactionController.updateTransactionById);
+
+// Delete transaction by id
+router.delete('/:id', transactionController.deleteTransactionById);
+
 export default router;
