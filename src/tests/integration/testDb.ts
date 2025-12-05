@@ -30,9 +30,10 @@ export const createTestClient = (): SupabaseClient => {
 export const cleanTestData = async (client: SupabaseClient): Promise<void> => {
   try {
     // Delete all data from test tables in correct order to respect foreign keys
-    // Add your tables here as needed
-    await client.from('debts').delete().neq('id', 'impossible-id');
-    
+    // Using gte with minimum UUID to match all records (neq with invalid UUID fails for UUID columns)
+    await client.from('transactions').delete().gte('id', '00000000-0000-0000-0000-000000000000');
+    await client.from('debts').delete().gte('id', '00000000-0000-0000-0000-000000000000');
+
     console.log('Test data cleaned successfully');
   } catch (error) {
     console.error('Error cleaning test data:', error);
