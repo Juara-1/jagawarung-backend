@@ -161,7 +161,7 @@ export class TransactionService implements ITransactionService {
       }
     }
 
-    if (type === 'debts' && (!debtorName || typeof debtorName !== 'string')) {
+    if (type === 'debts' && !debtorName) {
       throw new AppError('debtorName is required for debt transactions', 400);
     }
 
