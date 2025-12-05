@@ -29,20 +29,20 @@ export interface TransactionResponse {
 }
 
 export interface CreateTransactionDTO {
-  debtorName?: string | null;
+  debtor_name?: string | null;
   nominal: number;
   type: TransactionType;
-  invoiceUrl?: string | null;
-  invoiceData?: Record<string, any> | null;
+  invoice_url?: string | null;
+  invoice_data?: Record<string, any> | null;
   note?: string | null;
 }
 
 export interface UpdateTransactionDTO {
-  debtorName?: string | null;
+  debtor_name?: string | null;
   nominal?: number;
   type?: TransactionType;
-  invoiceUrl?: string | null;
-  invoiceData?: Record<string, any> | null;
+  invoice_url?: string | null;
+  invoice_data?: Record<string, any> | null;
   note?: string | null;
 }
 

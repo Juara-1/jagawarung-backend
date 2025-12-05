@@ -144,7 +144,7 @@ export class TransactionService implements ITransactionService {
     payload: Partial<CreateTransactionDTO>,
     options: { allowPartial?: boolean } = {}
   ): void {
-    const { debtorName = null, nominal, type, note = null, invoiceUrl = null } = payload;
+    const { debtor_name = null, nominal, type, note = null, invoice_url = null } = payload;
 
     if (!options.allowPartial || nominal !== undefined) {
       if (typeof nominal !== 'number' || Number.isNaN(nominal) || nominal <= 0) {
@@ -161,20 +161,20 @@ export class TransactionService implements ITransactionService {
       }
     }
 
-    if (type === 'debts' && !debtorName) {
-      throw new AppError('debtorName is required for debt transactions', 400);
+    if (type === 'debts' && !debtor_name) {
+      throw new AppError('debtor_name is required for debt transactions', 400);
     }
 
-    if (debtorName && typeof debtorName !== 'string') {
-      throw new AppError('debtorName must be a string when provided', 400);
+    if (debtor_name && typeof debtor_name !== 'string') {
+      throw new AppError('debtor_name must be a string', 400);
     }
 
     if (note && typeof note !== 'string') {
       throw new AppError('note must be a string when provided', 400);
     }
 
-    if (invoiceUrl && typeof invoiceUrl !== 'string') {
-      throw new AppError('invoiceUrl must be a string when provided', 400);
+    if (invoice_url && typeof invoice_url !== 'string') {
+      throw new AppError('invoice_url must be a string when provided', 400);
     }
   }
 

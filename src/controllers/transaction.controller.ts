@@ -52,12 +52,12 @@ export const getTransactions = async (
 /**
  * Create transaction request body
  * @typedef {object} CreateTransactionRequest
- * @property {string} debtorName - Name of the debtor (required for debts)
+ * @property {string} debtor_name - Name of the debtor (required for debts)
  * @property {number} nominal.required - Transaction amount (must be > 0)
  * @property {string} type.required - Transaction type (spending, earning, debts)
  * @property {string} note - Transaction note
- * @property {string} invoiceUrl - URL to the invoice in storage
- * @property {object} invoiceData - Invoice metadata or OCR payload
+ * @property {string} invoice_url - URL to the invoice in storage
+ * @property {object} invoice_data - Invoice metadata or OCR payload
  */
 
 /**

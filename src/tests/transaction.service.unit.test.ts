@@ -142,7 +142,7 @@ describe('TransactionService', () => {
       expect(mockRepository.create).not.toHaveBeenCalled();
     });
 
-    it('should throw error for debt transaction without debtorName', async () => {
+    it('should throw error for debt transaction without debtor_name', async () => {
       // Arrange
       const debtPayload = {
         nominal: 50000,
@@ -152,39 +152,39 @@ describe('TransactionService', () => {
 
       // Act & Assert
       await expect(service.create(debtPayload)).rejects.toThrow(
-        new AppError('debtorName is required for debt transactions', 400)
+        new AppError('debtor_name is required for debt transactions', 400)
       );
       expect(mockRepository.create).not.toHaveBeenCalled();
     });
 
-    it('should throw error for debt transaction with empty debtorName', async () => {
+    it('should throw error for debt transaction with empty debtor_name', async () => {
       // Arrange
       const debtPayload = {
         nominal: 50000,
         type: 'debts' as TransactionType,
-        debtorName: '',
+        debtor_name: '',
         note: 'Test debt',
       };
 
       // Act & Assert
       await expect(service.create(debtPayload)).rejects.toThrow(
-        new AppError('debtorName is required for debt transactions', 400)
+        new AppError('debtor_name is required for debt transactions', 400)
       );
       expect(mockRepository.create).not.toHaveBeenCalled();
     });
 
-    it('should throw error for debt transaction with non-string debtorName', async () => {
+    it('should throw error for debt transaction with non-string debtor_name', async () => {
       // Arrange
       const debtPayload = {
         nominal: 50000,
         type: 'debts' as TransactionType,
-        debtorName: 123 as any,
+        debtor_name: 123 as any,
         note: 'Test debt',
       };
 
       // Act & Assert
       await expect(service.create(debtPayload)).rejects.toThrow(
-        new AppError('debtorName must be a string when provided', 400)
+        new AppError('debtor_name must be a string', 400)
       );
       expect(mockRepository.create).not.toHaveBeenCalled();
     });
@@ -200,23 +200,23 @@ describe('TransactionService', () => {
       expect(mockRepository.create).not.toHaveBeenCalled();
     });
 
-    it('should throw error for non-string invoiceUrl', async () => {
+    it('should throw error for non-string invoice_url', async () => {
       // Arrange
-      const invalidPayload = { ...validPayload, invoiceUrl: 123 as any };
+      const invalidPayload = { ...validPayload, invoice_url: 123 as any };
 
       // Act & Assert
       await expect(service.create(invalidPayload)).rejects.toThrow(
-        new AppError('invoiceUrl must be a string when provided', 400)
+        new AppError('invoice_url must be a string when provided', 400)
       );
       expect(mockRepository.create).not.toHaveBeenCalled();
     });
 
-    it('should create debt transaction with valid debtorName', async () => {
+    it('should create debt transaction with valid debtor_name', async () => {
       // Arrange
       const debtPayload = {
         nominal: 50000,
         type: 'debts' as TransactionType,
-        debtorName: 'John Doe',
+        debtor_name: 'John Doe',
         note: 'Test debt',
       };
 
@@ -256,9 +256,9 @@ describe('TransactionService', () => {
       const payloadWithNulls = {
         nominal: 100000,
         type: 'earning' as TransactionType,
-        debtorName: null,
+        debtor_name: null,
         note: null,
-        invoiceUrl: null,
+        invoice_url: null,
       };
 
       mockRepository.create.mockResolvedValue(mockTransaction);
@@ -287,6 +287,226 @@ describe('TransactionService', () => {
 
       // Act & Assert
       await expect(service.create(validPayload)).rejects.toThrow(repositoryError);
+    });
+  });
+
+  describe('update', () => {
+    const updatePayload = {
+      nominal: 150000,
+      type: 'spending' as TransactionType,
+      note: 'Updated transaction',
+    };
+
+    const mockTransaction: Transaction = {
+      id: 'test-id',
+      nominal: 150000,
+      debtor_name: null,
+      invoice_url: null,
+      invoice_data: null,
+      note: 'Updated transaction',
+      type: 'spending',
+      created_at: '2025-12-06T10:00:00.000Z',
+      updated_at: '2025-12-06T11:00:00.000Z',
+    };
+
+    it('should update a transaction successfully', async () => {
+      // Arrange
+      mockRepository.updateById.mockResolvedValue(mockTransaction);
+
+      // Act
+      const result = await service.update('test-id', updatePayload);
+
+      // Assert
+      expect(mockRepository.updateById).toHaveBeenCalledWith('test-id', updatePayload);
+      expect(result).toEqual({
+        id: 'test-id',
+        nominal: 150000,
+        debtor_name: null,
+        invoice_url: null,
+        invoice_data: null,
+        note: 'Updated transaction',
+        created_at: '2025-12-06T10:00:00.000Z',
+        updated_at: '2025-12-06T11:00:00.000Z',
+      });
+    });
+
+    it('should throw error for invalid nominal (negative)', async () => {
+      // Arrange
+      const invalidPayload = { ...updatePayload, nominal: -1000 };
+
+      // Act & Assert
+      await expect(service.update('test-id', invalidPayload)).rejects.toThrow(
+        new AppError('nominal must be a positive number', 400)
+      );
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should throw error for invalid nominal (zero)', async () => {
+      // Arrange
+      const invalidPayload = { ...updatePayload, nominal: 0 };
+
+      // Act & Assert
+      await expect(service.update('test-id', invalidPayload)).rejects.toThrow(
+        new AppError('nominal must be a positive number', 400)
+      );
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should throw error for invalid type', async () => {
+      // Arrange
+      const invalidPayload = { ...updatePayload, type: 'invalid_type' as TransactionType };
+
+      // Act & Assert
+      await expect(service.update('test-id', invalidPayload)).rejects.toThrow(
+        new AppError('type must be one of: spending, earning, debts', 400)
+      );
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should throw error for debt transaction without debtor_name', async () => {
+      // Arrange
+      const debtPayload = {
+        nominal: 50000,
+        type: 'debts' as TransactionType,
+        note: 'Test debt',
+      };
+
+      // Act & Assert
+      await expect(service.update('test-id', debtPayload)).rejects.toThrow(
+        new AppError('debtor_name is required for debt transactions', 400)
+      );
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should throw error for debt transaction with non-string debtor_name', async () => {
+      // Arrange
+      const debtPayload = {
+        nominal: 50000,
+        type: 'debts' as TransactionType,
+        debtor_name: 123 as any,
+        note: 'Test debt',
+      };
+
+      // Act & Assert
+      await expect(service.update('test-id', debtPayload)).rejects.toThrow(
+        new AppError('debtor_name must be a string', 400)
+      );
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should throw error for non-string note', async () => {
+      // Arrange
+      const invalidPayload = { ...updatePayload, note: 123 as any };
+
+      // Act & Assert
+      await expect(service.update('test-id', invalidPayload)).rejects.toThrow(
+        new AppError('note must be a string when provided', 400)
+      );
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should throw error for non-string invoice_url', async () => {
+      // Arrange
+      const invalidPayload = { ...updatePayload, invoice_url: 123 as any };
+
+      // Act & Assert
+      await expect(service.update('test-id', invalidPayload)).rejects.toThrow(
+        new AppError('invoice_url must be a string when provided', 400)
+      );
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should update debt transaction with valid debtor_name', async () => {
+      // Arrange
+      const debtPayload = {
+        nominal: 50000,
+        type: 'debts' as TransactionType,
+        debtor_name: 'Jane Doe',
+        note: 'Updated debt',
+      };
+
+      const mockDebtTransaction: Transaction = {
+        id: 'debt-id',
+        nominal: 50000,
+        debtor_name: 'Jane Doe',
+        invoice_url: null,
+        invoice_data: null,
+        note: 'Updated debt',
+        type: 'debts',
+        created_at: '2025-12-06T10:00:00.000Z',
+        updated_at: '2025-12-06T11:00:00.000Z',
+      };
+
+      mockRepository.updateById.mockResolvedValue(mockDebtTransaction);
+
+      // Act
+      const result = await service.update('debt-id', debtPayload);
+
+      // Assert
+      expect(mockRepository.updateById).toHaveBeenCalledWith('debt-id', debtPayload);
+      expect(result).toEqual({
+        id: 'debt-id',
+        nominal: 50000,
+        debtor_name: 'Jane Doe',
+        invoice_url: null,
+        invoice_data: null,
+        note: 'Updated debt',
+        created_at: '2025-12-06T10:00:00.000Z',
+        updated_at: '2025-12-06T11:00:00.000Z',
+      });
+    });
+
+    it('should handle repository errors', async () => {
+      // Arrange
+      const repositoryError = new Error('Database connection failed');
+      mockRepository.updateById.mockRejectedValue(repositoryError);
+
+      // Act & Assert
+      await expect(service.update('test-id', updatePayload)).rejects.toThrow(repositoryError);
+    });
+  });
+
+  describe('delete', () => {
+    const mockTransaction: Transaction = {
+      id: 'test-id',
+      nominal: 100000,
+      debtor_name: null,
+      invoice_url: null,
+      invoice_data: null,
+      note: 'Test transaction',
+      type: 'earning',
+      created_at: '2025-12-06T10:00:00.000Z',
+      updated_at: '2025-12-06T10:00:00.000Z',
+    };
+
+    it('should delete a transaction successfully', async () => {
+      // Arrange
+      mockRepository.deleteById.mockResolvedValue(mockTransaction);
+
+      // Act
+      const result = await service.delete('test-id');
+
+      // Assert
+      expect(mockRepository.deleteById).toHaveBeenCalledWith('test-id');
+      expect(result).toEqual({
+        id: 'test-id',
+        nominal: 100000,
+        debtor_name: null,
+        invoice_url: null,
+        invoice_data: null,
+        note: 'Test transaction',
+        created_at: '2025-12-06T10:00:00.000Z',
+        updated_at: '2025-12-06T10:00:00.000Z',
+      });
+    });
+
+    it('should handle repository errors', async () => {
+      // Arrange
+      const repositoryError = new Error('Database connection failed');
+      mockRepository.deleteById.mockRejectedValue(repositoryError);
+
+      // Act & Assert
+      await expect(service.delete('test-id')).rejects.toThrow(repositoryError);
     });
   });
 });

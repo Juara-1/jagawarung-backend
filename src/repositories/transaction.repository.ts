@@ -22,12 +22,12 @@ export interface ITransactionRepository {
 export class SupabaseTransactionRepository implements ITransactionRepository {
   private mapPayload(dto: CreateTransactionDTO) {
     return {
-      debtor_name: dto.debtorName ?? null,
+      debtor_name: dto.debtor_name ?? null,
       nominal: dto.nominal,
       type: dto.type,
       note: dto.note ?? null,
-      invoice_url: dto.invoiceUrl ?? null,
-      invoice_data: dto.invoiceData ?? null,
+      invoice_url: dto.invoice_url ?? null,
+      invoice_data: dto.invoice_data ?? null,
     };
   }
 
@@ -80,12 +80,12 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
 
   async updateById(id: string, payload: UpdateTransactionDTO): Promise<Transaction> {
     const updatePayload = {
-      debtor_name: payload.debtorName ?? null,
+      debtor_name: payload.debtor_name ?? null,
       nominal: payload.nominal!,
       type: payload.type!,
       note: payload.note ?? null,
-      invoice_url: payload.invoiceUrl ?? null,
-      invoice_data: payload.invoiceData ?? null,
+      invoice_url: payload.invoice_url ?? null,
+      invoice_data: payload.invoice_data ?? null,
       updated_at: new Date().toISOString(),
     };
 
