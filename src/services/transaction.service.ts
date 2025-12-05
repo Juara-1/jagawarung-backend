@@ -1,17 +1,11 @@
-import { AppError } from '../middleware/errorHandler';
 import {
   CreateTransactionDTO,
   PaginatedTransactionsResponse,
   Transaction,
   TransactionFilterOptions,
   TransactionResponse,
-  TRANSACTION_TYPES,
   TransactionSummary,
-  TransactionListQueryParams,
-  TransactionOrderDirection,
-  TransactionOrderField,
   TransactionType,
-  isTransactionType,
   UpdateTransactionDTO,
 } from '../models/transaction.model';
 import {
@@ -19,8 +13,19 @@ import {
   SupabaseTransactionRepository,
 } from '../repositories/transaction.repository';
 
+export interface ValidatedListQuery {
+  page: number;
+  per_page: number;
+  order_by: 'created_at' | 'updated_at' | 'nominal';
+  order_direction: 'asc' | 'desc';
+  note?: string;
+  type?: TransactionType[];
+  created_from?: string;
+  created_to?: string;
+}
+
 export interface ITransactionService {
-  list(query: TransactionListQueryParams): Promise<PaginatedTransactionsResponse>;
+  list(query: ValidatedListQuery): Promise<PaginatedTransactionsResponse>;
   create(payload: CreateTransactionDTO): Promise<TransactionResponse>;
   delete(id: string): Promise<TransactionResponse>;
   update(id: string, payload: UpdateTransactionDTO): Promise<TransactionResponse>;
@@ -34,73 +39,23 @@ export class TransactionService implements ITransactionService {
     return new TransactionService(new SupabaseTransactionRepository());
   }
 
-  async list(query: TransactionListQueryParams): Promise<PaginatedTransactionsResponse> {
-    const filters = this.parseListQuery(query);
+  async list(query: ValidatedListQuery): Promise<PaginatedTransactionsResponse> {
+    const filters: TransactionFilterOptions = {
+      page: query.page,
+      perPage: query.per_page,
+      orderBy: query.order_by,
+      orderDirection: query.order_direction,
+      note: query.note,
+      types: query.type,
+      createdFrom: query.created_from,
+      createdTo: query.created_to,
+    };
     return this.repository.listPaginated(filters);
   }
 
   async create(payload: CreateTransactionDTO): Promise<TransactionResponse> {
-    this.validatePayload(payload);
-
     const transaction = await this.repository.create(payload);
-
     return this.toResponse(transaction);
-  }
-
-  private parseListQuery(query: TransactionListQueryParams): TransactionFilterOptions {
-    const page = Math.max(parseInt(query.page || '1', 10), 1);
-    const perPageRaw = Math.min(Math.max(parseInt(query.per_page || '10', 10), 1), 100);
-    const orderByRaw = (query.order_by as TransactionOrderField) || 'created_at';
-    const orderDirectionRaw = (query.order_direction as TransactionOrderDirection) || 'desc';
-
-    const allowedOrderFields: TransactionOrderField[] = ['created_at', 'updated_at', 'nominal'];
-    const allowedOrderDirections: TransactionOrderDirection[] = ['asc', 'desc'];
-
-    if (!allowedOrderFields.includes(orderByRaw)) {
-      throw new AppError(
-        `Invalid order_by value. Allowed values: ${allowedOrderFields.join(', ')}`,
-        400
-      );
-    }
-
-    if (!allowedOrderDirections.includes(orderDirectionRaw)) {
-      throw new AppError('Invalid order_direction value. Allowed values: asc, desc', 400);
-    }
-
-    const note = query.note || undefined;
-
-    const typeFilterList = (query.type || '')
-      .split(',')
-      .map((type) => type.trim().toLowerCase())
-      .filter((type) => type.length > 0) as TransactionType[];
-
-    if (typeFilterList.length > 0) {
-      const invalidTypes = typeFilterList.filter((type) => !isTransactionType(type));
-      if (invalidTypes.length > 0) {
-        throw new AppError('Invalid type value. Allowed values: spending, earning, debts', 400);
-      }
-    }
-
-    const createdFrom = query.created_from ? this.validateDate(query.created_from, 'created_from') : undefined;
-    const createdTo = query.created_to ? this.validateDate(query.created_to, 'created_to') : undefined;
-
-    return {
-      page,
-      perPage: perPageRaw,
-      orderBy: orderByRaw,
-      orderDirection: orderDirectionRaw,
-      note,
-      types: typeFilterList.length ? typeFilterList : undefined,
-      createdFrom,
-      createdTo,
-    };
-  }
-
-  private validateDate(value: string, field: string): string {
-    if (Number.isNaN(Date.parse(value))) {
-      throw new AppError(`Invalid ${field} date. Use ISO format`, 400);
-    }
-    return value;
   }
 
   async delete(id: string): Promise<TransactionResponse> {
@@ -109,8 +64,6 @@ export class TransactionService implements ITransactionService {
   }
 
   async update(id: string, payload: UpdateTransactionDTO): Promise<TransactionResponse> {
-    this.validatePayload(payload, { allowPartial: false });
-
     const transaction = await this.repository.updateById(id, payload);
     return this.toResponse(transaction);
   }
@@ -138,44 +91,6 @@ export class TransactionService implements ITransactionService {
     });
 
     return summary;
-  }
-
-  private validatePayload(
-    payload: Partial<CreateTransactionDTO>,
-    options: { allowPartial?: boolean } = {}
-  ): void {
-    const { debtor_name = null, nominal, type, note = null, invoice_url = null } = payload;
-
-    if (!options.allowPartial || nominal !== undefined) {
-      if (typeof nominal !== 'number' || Number.isNaN(nominal) || nominal <= 0) {
-      throw new AppError('nominal must be a positive number', 400);
-    }
-    }
-
-    if (!options.allowPartial || type !== undefined) {
-      if (!type || typeof type !== 'string' || !isTransactionType(type)) {
-        throw new AppError(
-          `type must be one of: ${TRANSACTION_TYPES.join(', ')}`,
-          400
-        );
-      }
-    }
-
-    if (type === 'debts' && !debtor_name) {
-      throw new AppError('debtor_name is required for debt transactions', 400);
-    }
-
-    if (debtor_name && typeof debtor_name !== 'string') {
-      throw new AppError('debtor_name must be a string', 400);
-    }
-
-    if (note && typeof note !== 'string') {
-      throw new AppError('note must be a string when provided', 400);
-    }
-
-    if (invoice_url && typeof invoice_url !== 'string') {
-      throw new AppError('invoice_url must be a string when provided', 400);
-    }
   }
 
   private toResponse(transaction: Transaction): TransactionResponse {
@@ -207,8 +122,6 @@ export class TransactionService implements ITransactionService {
       }
       case 'month':
         return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      default:
-        throw new AppError('Invalid time_range. Allowed values: day, week, month', 400);
     }
   }
 
@@ -232,8 +145,6 @@ export class TransactionService implements ITransactionService {
       }
       case 'month':
         return new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
-      default:
-        throw new AppError('Invalid time_range. Allowed values: day, week, month', 400);
     }
   }
 }

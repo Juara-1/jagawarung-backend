@@ -1,5 +1,4 @@
-import { AppError } from '../middleware/errorHandler';
-import { TransactionService } from '../services/transaction.service';
+import { TransactionService, ValidatedListQuery } from '../services/transaction.service';
 import {
   CreateTransactionDTO,
   PaginatedTransactionsResponse,
@@ -15,6 +14,14 @@ const mockRepository = {
   updateById: jest.fn(),
   getSummaryByRange: jest.fn(),
   listPaginated: jest.fn(),
+};
+
+// Default validated query for list tests
+const defaultListQuery: ValidatedListQuery = {
+  page: 1,
+  per_page: 10,
+  order_by: 'created_at',
+  order_direction: 'desc',
 };
 
 describe('TransactionService', () => {
@@ -64,7 +71,7 @@ describe('TransactionService', () => {
       mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
 
       // Act
-      const result = await service.list({});
+      const result = await service.list(defaultListQuery);
 
       // Assert
       expect(mockRepository.listPaginated).toHaveBeenCalledWith({
@@ -88,7 +95,7 @@ describe('TransactionService', () => {
       });
 
       // Act
-      await service.list({ page: '2', per_page: '20' });
+      await service.list({ ...defaultListQuery, page: 2, per_page: 20 });
 
       // Assert
       expect(mockRepository.listPaginated).toHaveBeenCalledWith(
@@ -99,57 +106,12 @@ describe('TransactionService', () => {
       );
     });
 
-    it('should enforce minimum page value of 1', async () => {
-      // Arrange
-      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
-
-      // Act
-      await service.list({ page: '0' });
-
-      // Assert
-      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
-        expect.objectContaining({
-          page: 1,
-        })
-      );
-    });
-
-    it('should enforce minimum per_page value of 1', async () => {
-      // Arrange
-      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
-
-      // Act
-      await service.list({ per_page: '0' });
-
-      // Assert
-      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
-        expect.objectContaining({
-          perPage: 1,
-        })
-      );
-    });
-
-    it('should enforce maximum per_page value of 100', async () => {
-      // Arrange
-      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
-
-      // Act
-      await service.list({ per_page: '500' });
-
-      // Assert
-      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
-        expect.objectContaining({
-          perPage: 100,
-        })
-      );
-    });
-
     it('should list transactions with custom ordering', async () => {
       // Arrange
       mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
 
       // Act
-      await service.list({ order_by: 'nominal', order_direction: 'asc' });
+      await service.list({ ...defaultListQuery, order_by: 'nominal', order_direction: 'asc' });
 
       // Assert
       expect(mockRepository.listPaginated).toHaveBeenCalledWith(
@@ -165,7 +127,7 @@ describe('TransactionService', () => {
       mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
 
       // Act
-      await service.list({ order_by: 'updated_at' });
+      await service.list({ ...defaultListQuery, order_by: 'updated_at' });
 
       // Assert
       expect(mockRepository.listPaginated).toHaveBeenCalledWith(
@@ -175,28 +137,12 @@ describe('TransactionService', () => {
       );
     });
 
-    it('should throw error for invalid order_by value', async () => {
-      // Act & Assert
-      await expect(service.list({ order_by: 'invalid_field' })).rejects.toThrow(
-        new AppError('Invalid order_by value. Allowed values: created_at, updated_at, nominal', 400)
-      );
-      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for invalid order_direction value', async () => {
-      // Act & Assert
-      await expect(service.list({ order_direction: 'invalid' })).rejects.toThrow(
-        new AppError('Invalid order_direction value. Allowed values: asc, desc', 400)
-      );
-      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
-    });
-
     it('should list transactions with note filter', async () => {
       // Arrange
       mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
 
       // Act
-      await service.list({ note: 'test search' });
+      await service.list({ ...defaultListQuery, note: 'test search' });
 
       // Assert
       expect(mockRepository.listPaginated).toHaveBeenCalledWith(
@@ -211,7 +157,7 @@ describe('TransactionService', () => {
       mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
 
       // Act
-      await service.list({ type: 'earning' });
+      await service.list({ ...defaultListQuery, type: ['earning'] });
 
       // Assert
       expect(mockRepository.listPaginated).toHaveBeenCalledWith(
@@ -226,7 +172,7 @@ describe('TransactionService', () => {
       mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
 
       // Act
-      await service.list({ type: 'earning,spending' });
+      await service.list({ ...defaultListQuery, type: ['earning', 'spending'] });
 
       // Assert
       expect(mockRepository.listPaginated).toHaveBeenCalledWith(
@@ -236,44 +182,13 @@ describe('TransactionService', () => {
       );
     });
 
-    it('should handle type filter with extra spaces', async () => {
-      // Arrange
-      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
-
-      // Act
-      await service.list({ type: ' earning , spending , debts ' });
-
-      // Assert
-      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
-        expect.objectContaining({
-          types: ['earning', 'spending', 'debts'],
-        })
-      );
-    });
-
-    it('should throw error for invalid type filter', async () => {
-      // Act & Assert
-      await expect(service.list({ type: 'invalid_type' })).rejects.toThrow(
-        new AppError('Invalid type value. Allowed values: spending, earning, debts', 400)
-      );
-      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
-    });
-
-    it('should throw error when one of multiple types is invalid', async () => {
-      // Act & Assert
-      await expect(service.list({ type: 'earning,invalid' })).rejects.toThrow(
-        new AppError('Invalid type value. Allowed values: spending, earning, debts', 400)
-      );
-      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
-    });
-
     it('should list transactions with created_from filter', async () => {
       // Arrange
       mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
       const dateFrom = '2025-12-01T00:00:00.000Z';
 
       // Act
-      await service.list({ created_from: dateFrom });
+      await service.list({ ...defaultListQuery, created_from: dateFrom });
 
       // Assert
       expect(mockRepository.listPaginated).toHaveBeenCalledWith(
@@ -289,7 +204,7 @@ describe('TransactionService', () => {
       const dateTo = '2025-12-31T23:59:59.000Z';
 
       // Act
-      await service.list({ created_to: dateTo });
+      await service.list({ ...defaultListQuery, created_to: dateTo });
 
       // Assert
       expect(mockRepository.listPaginated).toHaveBeenCalledWith(
@@ -306,7 +221,7 @@ describe('TransactionService', () => {
       const dateTo = '2025-12-31T23:59:59.000Z';
 
       // Act
-      await service.list({ created_from: dateFrom, created_to: dateTo });
+      await service.list({ ...defaultListQuery, created_from: dateFrom, created_to: dateTo });
 
       // Assert
       expect(mockRepository.listPaginated).toHaveBeenCalledWith(
@@ -317,34 +232,18 @@ describe('TransactionService', () => {
       );
     });
 
-    it('should throw error for invalid created_from date format', async () => {
-      // Act & Assert
-      await expect(service.list({ created_from: 'not-a-date' })).rejects.toThrow(
-        new AppError('Invalid created_from date. Use ISO format', 400)
-      );
-      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for invalid created_to date format', async () => {
-      // Act & Assert
-      await expect(service.list({ created_to: 'invalid-date' })).rejects.toThrow(
-        new AppError('Invalid created_to date. Use ISO format', 400)
-      );
-      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
-    });
-
     it('should list transactions with all filters combined', async () => {
       // Arrange
       mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
 
       // Act
       await service.list({
-        page: '2',
-        per_page: '25',
+        page: 2,
+        per_page: 25,
         order_by: 'nominal',
         order_direction: 'asc',
         note: 'groceries',
-        type: 'spending,earning',
+        type: ['spending', 'earning'],
         created_from: '2025-12-01T00:00:00.000Z',
         created_to: '2025-12-31T23:59:59.000Z',
       });
@@ -362,28 +261,13 @@ describe('TransactionService', () => {
       });
     });
 
-    it('should handle empty type filter string', async () => {
-      // Arrange
-      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
-
-      // Act
-      await service.list({ type: '' });
-
-      // Assert
-      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
-        expect.objectContaining({
-          types: undefined,
-        })
-      );
-    });
-
     it('should handle repository errors', async () => {
       // Arrange
       const repositoryError = new Error('Database connection failed');
       mockRepository.listPaginated.mockRejectedValue(repositoryError);
 
       // Act & Assert
-      await expect(service.list({})).rejects.toThrow(repositoryError);
+      await expect(service.list(defaultListQuery)).rejects.toThrow(repositoryError);
     });
   });
 
@@ -425,154 +309,6 @@ describe('TransactionService', () => {
         created_at: '2025-12-06T10:00:00.000Z',
         updated_at: '2025-12-06T10:00:00.000Z',
       });
-    });
-
-    it('should throw error for invalid nominal (negative)', async () => {
-      // Arrange
-      const invalidPayload = { ...validPayload, nominal: -1000 };
-
-      // Act & Assert
-      await expect(service.create(invalidPayload)).rejects.toThrow(
-        new AppError('nominal must be a positive number', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for invalid nominal (zero)', async () => {
-      // Arrange
-      const invalidPayload = { ...validPayload, nominal: 0 };
-
-      // Act & Assert
-      await expect(service.create(invalidPayload)).rejects.toThrow(
-        new AppError('nominal must be a positive number', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for invalid nominal (NaN)', async () => {
-      // Arrange
-      const invalidPayload = { ...validPayload, nominal: NaN };
-
-      // Act & Assert
-      await expect(service.create(invalidPayload)).rejects.toThrow(
-        new AppError('nominal must be a positive number', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for missing type', async () => {
-      // Arrange
-      const invalidPayload = { ...validPayload };
-      delete (invalidPayload as any).type;
-
-      // Act & Assert
-      await expect(service.create(invalidPayload)).rejects.toThrow(
-        new AppError('type must be one of: spending, earning, debts', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for invalid type', async () => {
-      // Arrange
-      const invalidPayload = { ...validPayload, type: 'invalid_type' as TransactionType };
-
-      // Act & Assert
-      await expect(service.create(invalidPayload)).rejects.toThrow(
-        new AppError('type must be one of: spending, earning, debts', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for missing nominal', async () => {
-      // Arrange
-      const invalidPayload = { ...validPayload };
-      delete (invalidPayload as any).nominal;
-
-      // Act & Assert
-      await expect(service.create(invalidPayload)).rejects.toThrow(
-        new AppError('nominal must be a positive number', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for non-numeric nominal', async () => {
-      // Arrange
-      const invalidPayload = { ...validPayload, nominal: 'not_a_number' as any };
-
-      // Act & Assert
-      await expect(service.create(invalidPayload)).rejects.toThrow(
-        new AppError('nominal must be a positive number', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for debt transaction without debtor_name', async () => {
-      // Arrange
-      const debtPayload = {
-        nominal: 50000,
-        type: 'debts' as TransactionType,
-        note: 'Test debt',
-      };
-
-      // Act & Assert
-      await expect(service.create(debtPayload)).rejects.toThrow(
-        new AppError('debtor_name is required for debt transactions', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for debt transaction with empty debtor_name', async () => {
-      // Arrange
-      const debtPayload = {
-        nominal: 50000,
-        type: 'debts' as TransactionType,
-        debtor_name: '',
-        note: 'Test debt',
-      };
-
-      // Act & Assert
-      await expect(service.create(debtPayload)).rejects.toThrow(
-        new AppError('debtor_name is required for debt transactions', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for debt transaction with non-string debtor_name', async () => {
-      // Arrange
-      const debtPayload = {
-        nominal: 50000,
-        type: 'debts' as TransactionType,
-        debtor_name: 123 as any,
-        note: 'Test debt',
-      };
-
-      // Act & Assert
-      await expect(service.create(debtPayload)).rejects.toThrow(
-        new AppError('debtor_name must be a string', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for non-string note', async () => {
-      // Arrange
-      const invalidPayload = { ...validPayload, note: 123 as any };
-
-      // Act & Assert
-      await expect(service.create(invalidPayload)).rejects.toThrow(
-        new AppError('note must be a string when provided', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for non-string invoice_url', async () => {
-      // Arrange
-      const invalidPayload = { ...validPayload, invoice_url: 123 as any };
-
-      // Act & Assert
-      await expect(service.create(invalidPayload)).rejects.toThrow(
-        new AppError('invoice_url must be a string when provided', 400)
-      );
-      expect(mockRepository.create).not.toHaveBeenCalled();
     });
 
     it('should create debt transaction with valid debtor_name', async () => {
@@ -692,92 +428,6 @@ describe('TransactionService', () => {
         created_at: '2025-12-06T10:00:00.000Z',
         updated_at: '2025-12-06T11:00:00.000Z',
       });
-    });
-
-    it('should throw error for invalid nominal (negative)', async () => {
-      // Arrange
-      const invalidPayload = { ...updatePayload, nominal: -1000 };
-
-      // Act & Assert
-      await expect(service.update('test-id', invalidPayload)).rejects.toThrow(
-        new AppError('nominal must be a positive number', 400)
-      );
-      expect(mockRepository.updateById).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for invalid nominal (zero)', async () => {
-      // Arrange
-      const invalidPayload = { ...updatePayload, nominal: 0 };
-
-      // Act & Assert
-      await expect(service.update('test-id', invalidPayload)).rejects.toThrow(
-        new AppError('nominal must be a positive number', 400)
-      );
-      expect(mockRepository.updateById).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for invalid type', async () => {
-      // Arrange
-      const invalidPayload = { ...updatePayload, type: 'invalid_type' as TransactionType };
-
-      // Act & Assert
-      await expect(service.update('test-id', invalidPayload)).rejects.toThrow(
-        new AppError('type must be one of: spending, earning, debts', 400)
-      );
-      expect(mockRepository.updateById).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for debt transaction without debtor_name', async () => {
-      // Arrange
-      const debtPayload = {
-        nominal: 50000,
-        type: 'debts' as TransactionType,
-        note: 'Test debt',
-      };
-
-      // Act & Assert
-      await expect(service.update('test-id', debtPayload)).rejects.toThrow(
-        new AppError('debtor_name is required for debt transactions', 400)
-      );
-      expect(mockRepository.updateById).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for debt transaction with non-string debtor_name', async () => {
-      // Arrange
-      const debtPayload = {
-        nominal: 50000,
-        type: 'debts' as TransactionType,
-        debtor_name: 123 as any,
-        note: 'Test debt',
-      };
-
-      // Act & Assert
-      await expect(service.update('test-id', debtPayload)).rejects.toThrow(
-        new AppError('debtor_name must be a string', 400)
-      );
-      expect(mockRepository.updateById).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for non-string note', async () => {
-      // Arrange
-      const invalidPayload = { ...updatePayload, note: 123 as any };
-
-      // Act & Assert
-      await expect(service.update('test-id', invalidPayload)).rejects.toThrow(
-        new AppError('note must be a string when provided', 400)
-      );
-      expect(mockRepository.updateById).not.toHaveBeenCalled();
-    });
-
-    it('should throw error for non-string invoice_url', async () => {
-      // Arrange
-      const invalidPayload = { ...updatePayload, invoice_url: 123 as any };
-
-      // Act & Assert
-      await expect(service.update('test-id', invalidPayload)).rejects.toThrow(
-        new AppError('invoice_url must be a string when provided', 400)
-      );
-      expect(mockRepository.updateById).not.toHaveBeenCalled();
     });
 
     it('should update debt transaction with valid debtor_name', async () => {
@@ -983,14 +633,6 @@ describe('TransactionService', () => {
 
       // Act & Assert
       await expect(service.getSummary('day')).rejects.toThrow(repositoryError);
-    });
-
-    it('should throw error for invalid time range', async () => {
-      // Act & Assert
-      await expect(service.getSummary('invalid' as any)).rejects.toThrow(
-        new AppError('Invalid time_range. Allowed values: day, week, month', 400)
-      );
-      expect(mockRepository.getSummaryByRange).not.toHaveBeenCalled();
     });
   });
 });

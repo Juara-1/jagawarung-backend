@@ -6,6 +6,10 @@ import {
   CreateTransactionDTO,
   UpdateTransactionDTO,
 } from '../models/transaction.model';
+import {
+  transactionListQuerySchema,
+  transactionSummaryQuerySchema,
+} from '../validators/transaction.schema';
 
 /**
  * A transaction record
@@ -42,7 +46,11 @@ export const getTransactions = async (
   next: NextFunction
 ) => {
   try {
-    const { transactions, pagination } = await transactionService.list(req.query);
+    const parseResult = transactionListQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      throw new AppError(parseResult.error.issues[0].message, 400);
+    }
+    const { transactions, pagination } = await transactionService.list(parseResult.data);
     sendPaginatedSuccess(res, transactions, pagination, 'Transactions retrieved successfully');
   } catch (error) {
     next(error);
@@ -147,7 +155,7 @@ export const updateTransactionById = async (
  * GET /api/transactions/summary
  * @summary Get aggregated transaction totals by type
  * @tags Transactions
- * @param {string} time_range.query - Time range filter (day, week, month). Defaults to month.
+ * @param {string} time_range.query - Time range filter (day, week, month). Required.
  * @return {object} 200 - Summary retrieved successfully
  */
 export const getTransactionSummary = async (
@@ -156,14 +164,12 @@ export const getTransactionSummary = async (
   next: NextFunction
 ) => {
   try {
-    const timeRange = (req.query.time_range as 'day' | 'week' | 'month') || 'month';
-    const allowedRanges = ['day', 'week', 'month'];
-
-    if (!allowedRanges.includes(timeRange)) {
-      throw new AppError('time_range must be one of: day, week, month', 400);
+    const parseResult = transactionSummaryQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      throw new AppError(parseResult.error.issues[0].message, 400);
     }
 
-    const summary = await transactionService.getSummary(timeRange);
+    const summary = await transactionService.getSummary(parseResult.data.time_range);
 
     sendSuccess(res, summary, 'Transaction summary retrieved successfully');
   } catch (error) {
