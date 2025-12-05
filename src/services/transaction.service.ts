@@ -5,7 +5,6 @@ import {
   Transaction,
   TransactionFilterOptions,
   TransactionResponse,
-  TRANSACTION_TYPES,
   TransactionSummary,
   TransactionListQueryParams,
   TransactionOrderDirection,
@@ -107,8 +106,6 @@ export class TransactionService implements ITransactionService {
   }
 
   async update(id: string, payload: UpdateTransactionDTO): Promise<TransactionResponse> {
-    this.validatePayload(payload, { allowPartial: false });
-
     const transaction = await this.repository.updateById(id, payload);
     return this.toResponse(transaction);
   }
@@ -136,41 +133,6 @@ export class TransactionService implements ITransactionService {
     });
 
     return summary;
-  }
-
-  private validatePayload(
-    payload: Partial<CreateTransactionDTO>,
-    options: { allowPartial?: boolean } = {}
-  ): void {
-    const { debtor_name = null, nominal, type, note = null, invoice_url = null } = payload;
-
-    if (!options.allowPartial || nominal !== undefined) {
-      if (typeof nominal !== 'number' || Number.isNaN(nominal) || nominal <= 0) {
-        throw new AppError('nominal must be a positive number', 400);
-      }
-    }
-
-    if (!options.allowPartial || type !== undefined) {
-      if (!type || typeof type !== 'string' || !isTransactionType(type)) {
-        throw new AppError(`type must be one of: ${TRANSACTION_TYPES.join(', ')}`, 400);
-      }
-    }
-
-    if (type === 'debts' && !debtor_name) {
-      throw new AppError('debtor_name is required for debt transactions', 400);
-    }
-
-    if (debtor_name && typeof debtor_name !== 'string') {
-      throw new AppError('debtor_name must be a string', 400);
-    }
-
-    if (note && typeof note !== 'string') {
-      throw new AppError('note must be a string when provided', 400);
-    }
-
-    if (invoice_url && typeof invoice_url !== 'string') {
-      throw new AppError('invoice_url must be a string when provided', 400);
-    }
   }
 
   private toResponse(transaction: Transaction): TransactionResponse {
