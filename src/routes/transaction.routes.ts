@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import * as transactionController from '../controllers/transaction.controller';
+import { validate } from '../middleware/validate';
+import { transactionCreateSchema } from '../validators/transaction.schema';
 
 const router = Router();
 
@@ -10,7 +12,7 @@ router.get('/', transactionController.getTransactions);
 router.get('/summary', transactionController.getTransactionSummary);
 
 // Create transaction
-router.post('/', transactionController.createTransaction);
+router.post('/', validate(transactionCreateSchema), transactionController.createTransaction);
 
 // Update transaction
 router.put('/:id', transactionController.updateTransactionById);

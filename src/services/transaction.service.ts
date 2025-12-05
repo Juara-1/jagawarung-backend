@@ -40,8 +40,6 @@ export class TransactionService implements ITransactionService {
   }
 
   async create(payload: CreateTransactionDTO): Promise<TransactionResponse> {
-    this.validatePayload(payload);
-
     const transaction = await this.repository.create(payload);
 
     return this.toResponse(transaction);
@@ -148,16 +146,13 @@ export class TransactionService implements ITransactionService {
 
     if (!options.allowPartial || nominal !== undefined) {
       if (typeof nominal !== 'number' || Number.isNaN(nominal) || nominal <= 0) {
-      throw new AppError('nominal must be a positive number', 400);
-    }
+        throw new AppError('nominal must be a positive number', 400);
+      }
     }
 
     if (!options.allowPartial || type !== undefined) {
       if (!type || typeof type !== 'string' || !isTransactionType(type)) {
-        throw new AppError(
-          `type must be one of: ${TRANSACTION_TYPES.join(', ')}`,
-          400
-        );
+        throw new AppError(`type must be one of: ${TRANSACTION_TYPES.join(', ')}`, 400);
       }
     }
 
