@@ -1,10 +1,15 @@
 import { Response } from 'express';
+import { PaginationInfo } from '../models/transaction.model';
 
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;
   data?: T;
   error?: string;
+}
+
+export interface PaginatedApiResponse<T = any> extends ApiResponse<T> {
+  pagination: PaginationInfo;
 }
 
 export const sendSuccess = <T>(
@@ -17,6 +22,21 @@ export const sendSuccess = <T>(
     success: true,
     message,
     data,
+  });
+};
+
+export const sendPaginatedSuccess = <T>(
+  res: Response,
+  data: T,
+  pagination: PaginationInfo,
+  message: string = 'Success',
+  statusCode: number = 200
+): Response => {
+  return res.status(statusCode).json({
+    success: true,
+    message,
+    data,
+    pagination,
   });
 };
 

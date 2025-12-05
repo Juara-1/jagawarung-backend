@@ -1,14 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { supabase } from '../config/supabase';
-import { sendSuccess } from '../utils/response';
+import { sendSuccess, sendPaginatedSuccess } from '../utils/response';
 import { AppError } from '../middleware/errorHandler';
+import { TransactionService } from '../services/transaction.service';
 import {
-  Transaction,
-  TransactionResponse,
-  PaginatedTransactionsResponse,
   CreateTransactionDTO,
-  isTransactionType,
-  TRANSACTION_TYPES,
   UpdateTransactionDTO,
 } from '../models/transaction.model';
 
@@ -47,139 +42,8 @@ export const getTransactions = async (
   next: NextFunction
 ) => {
   try {
-    // Extract pagination parameters
-    const page = parseInt(req.query.page as string) || 1;
-    const perPage = Math.min(parseInt(req.query.per_page as string) || 10, 100); // Max 100 items per page
-    const orderBy = (req.query.order_by as string) || 'created_at';
-    const orderDirection = (req.query.order_direction as string) || 'desc';
-    const noteFilter = (req.query.note as string) || '';
-    const typeFilter = (req.query.type as string) || '';
-    const createdFrom = req.query.created_from as string || '';
-    const createdTo = req.query.created_to as string || '';
-
-    const allowedOrderFields = ['created_at', 'updated_at', 'nominal'];
-    const allowedOrderDirections = ['asc', 'desc'];
-
-    if (!allowedOrderFields.includes(orderBy)) {
-      throw new AppError(`Invalid order_by value. Allowed values: ${allowedOrderFields.join(', ')}`, 400);
-    }
-
-    if (!allowedOrderDirections.includes(orderDirection.toLowerCase())) {
-      throw new AppError('Invalid order_direction value. Allowed values: asc, desc', 400);
-    }
-
-    const typeFilterList = typeFilter
-      .split(',')
-      .map((type) => type.trim().toLowerCase())
-      .filter((type) => type.length > 0);
-
-    if (typeFilterList.length > 0) {
-      const invalidTypes = typeFilterList.filter((type) => !isTransactionType(type));
-      if (invalidTypes.length > 0) {
-        throw new AppError('Invalid type value. Allowed values: spending, earning, debts', 400);
-      }
-    }
-
-    if (createdFrom && Number.isNaN(Date.parse(createdFrom))) {
-      throw new AppError('Invalid created_from date. Use ISO format', 400);
-    }
-
-    if (createdTo && Number.isNaN(Date.parse(createdTo))) {
-      throw new AppError('Invalid created_to date. Use ISO format', 400);
-    }
-
-    // Validate pagination parameters
-    if (page < 1) {
-      throw new AppError('Page must be greater than 0', 400);
-    }
-    if (perPage < 1) {
-      throw new AppError('per_page must be greater than 0', 400);
-    }
-
-    // Calculate offset
-    const offset = (page - 1) * perPage;
-
-    // Build query with filters
-    let query = supabase.from('transactions').select('*', { count: 'exact' });
-
-    if (noteFilter) {
-      query = query.ilike('note', `%${noteFilter}%`);
-    }
-
-    if (typeFilterList.length > 0) {
-      query = query.in('type', typeFilterList);
-    }
-
-    if (createdFrom) {
-      query = query.gte('created_at', createdFrom);
-    }
-
-    if (createdTo) {
-      query = query.lte('created_at', createdTo);
-    }
-
-    // Get total count for pagination
-    const { count: totalItems, error: countError } = await query.limit(0);
-
-    if (countError) {
-      throw new AppError(`Failed to get transaction count: ${countError.message}`, 500);
-    }
-
-    // Get transactions with pagination and filters
-    let dataQuery = supabase.from('transactions').select('*');
-
-    if (noteFilter) {
-      dataQuery = dataQuery.ilike('note', `%${noteFilter}%`);
-    }
-
-    if (typeFilterList.length > 0) {
-      dataQuery = dataQuery.in('type', typeFilterList);
-    }
-
-    if (createdFrom) {
-      dataQuery = dataQuery.gte('created_at', createdFrom);
-    }
-
-    if (createdTo) {
-      dataQuery = dataQuery.lte('created_at', createdTo);
-    }
-
-    const { data: transactions, error: transactionsError } = await dataQuery
-      .order(orderBy, { ascending: orderDirection === 'asc' })
-      .range(offset, offset + perPage - 1);
-
-    if (transactionsError) {
-      throw new AppError(`Failed to get transactions: ${transactionsError.message}`, 500);
-    }
-
-    // Transform data to match response format
-    const transformedData: TransactionResponse[] = (transactions || []).map((transaction: Transaction) => ({
-      id: transaction.id,
-      nominal: transaction.nominal,
-      debtor_name: transaction.debtor_name,
-      invoice_url: transaction.invoice_url,
-      invoice_data: transaction.invoice_data,
-      note: transaction.note,
-      created_at: transaction.created_at,
-      updated_at: transaction.updated_at
-    }));
-
-    // Calculate pagination info
-    const totalPages = Math.ceil((totalItems || 0) / perPage);
-
-    const response: PaginatedTransactionsResponse = {
-      success: true,
-      message: 'transactions retrieved successfully',
-      data: transformedData,
-      pagination: {
-        page,
-        per_page: perPage,
-        total_items: totalItems || 0,
-        total_pages: totalPages
-      }
-    };
-
-    sendSuccess(res, response, 'Transactions retrieved successfully');
+    const { transactions, pagination } = await transactionService.list(req.query);
+    sendPaginatedSuccess(res, transactions, pagination, 'Transactions retrieved successfully');
   } catch (error) {
     next(error);
   }
@@ -204,119 +68,20 @@ export const getTransactions = async (
  * @return {TransactionResponse} 201 - Transaction created successfully
  * @return {object} 400 - Validation error
  */
+const transactionService = TransactionService.withSupabase();
+
 export const createTransaction = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const {
-      debtorName = null,
-      nominal,
-      type,
-      note = null,
-      invoiceUrl = null,
-      invoiceData = null,
-    } = req.body as CreateTransactionDTO;
-
-    if (typeof nominal !== 'number' || Number.isNaN(nominal) || nominal <= 0) {
-      throw new AppError('nominal must be a positive number', 400);
-    }
-
-    if (!type || typeof type !== 'string' || !isTransactionType(type)) {
-      throw new AppError(
-        `type must be one of: ${TRANSACTION_TYPES.join(', ')}`,
-        400
-      );
-    }
-
-    if (type === 'debts' && (!debtorName || typeof debtorName !== 'string')) {
-      throw new AppError('debtorName is required for debt transactions', 400);
-    }
-
-    if (debtorName && typeof debtorName !== 'string') {
-      throw new AppError('debtorName must be a string when provided', 400);
-    }
-
-    if (note && typeof note !== 'string') {
-      throw new AppError('note must be a string when provided', 400);
-    }
-
-    if (invoiceUrl && typeof invoiceUrl !== 'string') {
-      throw new AppError('invoiceUrl must be a string when provided', 400);
-    }
-
-    const payload = {
-      debtor_name: debtorName,
-      nominal,
-      type,
-      note,
-      invoice_url: invoiceUrl,
-      invoice_data: invoiceData,
-    };
-
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      throw new AppError(`Failed to create transaction: ${error.message}`, 400);
-    }
-
-    const response: TransactionResponse = {
-      id: data.id,
-      nominal: data.nominal,
-      debtor_name: data.debtor_name,
-      invoice_url: data.invoice_url,
-      invoice_data: data.invoice_data,
-      note: data.note,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
+    const payload = req.body as CreateTransactionDTO;
+    const response = await transactionService.create(payload);
 
     sendSuccess(res, response, 'Transaction created successfully', 201);
   } catch (error) {
     next(error);
-  }
-};
-
-const validateTransactionPayload = (
-  payload: Partial<CreateTransactionDTO>,
-  options: { isPartial?: boolean }
-) => {
-  const { debtorName = null, nominal, type, note = null, invoiceUrl = null } = payload;
-
-  if (!options.isPartial || nominal !== undefined) {
-    if (typeof nominal !== 'number' || Number.isNaN(nominal) || nominal <= 0) {
-      throw new AppError('nominal must be a positive number', 400);
-    }
-  }
-
-  if (!options.isPartial || type !== undefined) {
-    if (!type || typeof type !== 'string' || !isTransactionType(type)) {
-      throw new AppError(
-        `type must be one of: ${TRANSACTION_TYPES.join(', ')}`,
-        400
-      );
-    }
-  }
-
-  if (type === 'debts' && (!debtorName || typeof debtorName !== 'string')) {
-    throw new AppError('debtorName is required for debt transactions', 400);
-  }
-
-  if (debtorName && typeof debtorName !== 'string') {
-    throw new AppError('debtorName must be a string when provided', 400);
-  }
-
-  if (note && typeof note !== 'string') {
-    throw new AppError('note must be a string when provided', 400);
-  }
-
-  if (invoiceUrl && typeof invoiceUrl !== 'string') {
-    throw new AppError('invoiceUrl must be a string when provided', 400);
   }
 };
 
@@ -340,26 +105,9 @@ export const deleteTransactionById = async (
       throw new AppError('Transaction id is required', 400);
     }
 
-    const { data, error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', id)
-      .select()
-      .single();
+    const response = await transactionService.delete(id);
 
-    if (error?.code === 'PGRST116') {
-      throw new AppError('Transaction not found', 404);
-    }
-
-    if (error) {
-      throw new AppError(`Failed to delete transaction: ${error.message}`, 400);
-    }
-
-    if (!data) {
-      throw new AppError('Transaction not found', 404);
-    }
-
-    sendSuccess(res, data, 'Transaction deleted successfully');
+    sendSuccess(res, response, 'Transaction deleted successfully');
   } catch (error) {
     next(error);
   }
@@ -387,101 +135,11 @@ export const updateTransactionById = async (
     }
 
     const updatePayload = req.body as UpdateTransactionDTO;
-
-    validateTransactionPayload(updatePayload, { isPartial: false });
-
-    const payload = {
-      debtor_name: updatePayload.debtorName ?? null,
-      nominal: updatePayload.nominal!,
-      type: updatePayload.type!,
-      note: updatePayload.note ?? null,
-      invoice_url: updatePayload.invoiceUrl ?? null,
-      invoice_data: updatePayload.invoiceData ?? null,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from('transactions')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error?.code === 'PGRST116') {
-      throw new AppError('Transaction not found', 404);
-    }
-
-    if (error) {
-      throw new AppError(`Failed to update transaction: ${error.message}`, 400);
-    }
-
-    if (!data) {
-      throw new AppError('Transaction not found', 404);
-    }
-
-    const response: TransactionResponse = {
-      id: data.id,
-      nominal: data.nominal,
-      debtor_name: data.debtor_name,
-      invoice_url: data.invoice_url,
-      invoice_data: data.invoice_data,
-      note: data.note,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
+    const response = await transactionService.update(id, updatePayload);
 
     sendSuccess(res, response, 'Transaction updated successfully');
   } catch (error) {
     next(error);
-  }
-};
-
-const getTimeRangeStart = (timeRange: string) => {
-  const now = new Date();
-
-  switch (timeRange) {
-    case 'day':
-      now.setHours(0, 0, 0, 0);
-      return now.toISOString();
-    case 'week': {
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-      const startOfWeek = new Date(now.setDate(diff));
-      startOfWeek.setHours(0, 0, 0, 0);
-      return startOfWeek.toISOString();
-    }
-    case 'month':
-      return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    default:
-      throw new AppError('Invalid time_range. Allowed values: day, week, month', 400);
-  }
-};
-
-const getTimeRangeEnd = (timeRange: string) => {
-  const now = new Date();
-
-  switch (timeRange) {
-    case 'day': {
-      // Start of tomorrow
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-      return tomorrow.toISOString();
-    }
-    case 'week': {
-      // Start of next week (next Monday)
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1) + 7;
-      const startOfNextWeek = new Date(now);
-      startOfNextWeek.setDate(diff);
-      startOfNextWeek.setHours(0, 0, 0, 0);
-      return startOfNextWeek.toISOString();
-    }
-    case 'month':
-      // Start of next month
-      return new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
-    default:
-      throw new AppError('Invalid time_range. Allowed values: day, week, month', 400);
   }
 };
 
@@ -498,41 +156,14 @@ export const getTransactionSummary = async (
   next: NextFunction
 ) => {
   try {
-    const timeRange = (req.query.time_range as string) || 'month';
+    const timeRange = (req.query.time_range as 'day' | 'week' | 'month') || 'month';
     const allowedRanges = ['day', 'week', 'month'];
 
     if (!allowedRanges.includes(timeRange)) {
       throw new AppError('time_range must be one of: day, week, month', 400);
     }
 
-    const startDate = getTimeRangeStart(timeRange);
-    const endDate = getTimeRangeEnd(timeRange);
-
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('type, nominal')
-      .gte('created_at', startDate)
-      .lt('created_at', endDate);
-
-    if (error) {
-      throw new AppError(`Failed to fetch transaction summary: ${error.message}`, 500);
-    }
-
-    const summary = {
-      total_debts: 0,
-      total_spending: 0,
-      total_earning: 0,
-    };
-
-    (data || []).forEach((transaction) => {
-      if (transaction.type === 'debts') {
-        summary.total_debts += transaction.nominal;
-      } else if (transaction.type === 'spending') {
-        summary.total_spending += transaction.nominal;
-      } else if (transaction.type === 'earning') {
-        summary.total_earning += transaction.nominal;
-      }
-    });
+    const summary = await transactionService.getSummary(timeRange);
 
     sendSuccess(res, summary, 'Transaction summary retrieved successfully');
   } catch (error) {
