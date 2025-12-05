@@ -6,4 +6,7 @@ const router = Router();
 // Get paginated transactions
 router.get('/', transactionController.getTransactions);
 
+// Create transaction
+router.post('/', transactionController.createTransaction);
+
 export default router;

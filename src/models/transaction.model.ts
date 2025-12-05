@@ -1,8 +1,15 @@
+export const TRANSACTION_TYPES = ['spending', 'earning', 'debts'] as const;
+
+export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+
+export const isTransactionType = (value: string): value is TransactionType =>
+  (TRANSACTION_TYPES as readonly string[]).includes(value as TransactionType);
+
 export interface Transaction {
   id: string;
   debtor_name: string | null;
   note: string | null;
-  type: 'spending' | 'earning' | 'debts';
+  type: TransactionType;
   nominal: number;
   invoice_data: any | null;
   invoice_url: string | null;
@@ -19,6 +26,15 @@ export interface TransactionResponse {
   note: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface CreateTransactionDTO {
+  debtorName?: string | null;
+  nominal: number;
+  type: TransactionType;
+  invoiceUrl?: string | null;
+  invoiceData?: Record<string, any> | null;
+  note?: string | null;
 }
 
 export interface PaginationInfo {
