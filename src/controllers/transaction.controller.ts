@@ -9,7 +9,6 @@ import {
   PaginatedTransactionsResponse,
   CreateTransactionDTO,
   isTransactionType,
-  TRANSACTION_TYPES,
   UpdateTransactionDTO,
 } from '../models/transaction.model';
 
@@ -280,55 +279,6 @@ export const updateTransactionById = async (
   }
 };
 
-const getTimeRangeStart = (timeRange: string) => {
-  const now = new Date();
-
-  switch (timeRange) {
-    case 'day':
-      now.setHours(0, 0, 0, 0);
-      return now.toISOString();
-    case 'week': {
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-      const startOfWeek = new Date(now.setDate(diff));
-      startOfWeek.setHours(0, 0, 0, 0);
-      return startOfWeek.toISOString();
-    }
-    case 'month':
-      return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    default:
-      throw new AppError('Invalid time_range. Allowed values: day, week, month', 400);
-  }
-};
-
-const getTimeRangeEnd = (timeRange: string) => {
-  const now = new Date();
-
-  switch (timeRange) {
-    case 'day': {
-      // Start of tomorrow
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-      return tomorrow.toISOString();
-    }
-    case 'week': {
-      // Start of next week (next Monday)
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1) + 7;
-      const startOfNextWeek = new Date(now);
-      startOfNextWeek.setDate(diff);
-      startOfNextWeek.setHours(0, 0, 0, 0);
-      return startOfNextWeek.toISOString();
-    }
-    case 'month':
-      // Start of next month
-      return new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
-    default:
-      throw new AppError('Invalid time_range. Allowed values: day, week, month', 400);
-  }
-};
-
 /**
  * GET /api/transactions/summary
  * @summary Get aggregated transaction totals by type
@@ -342,41 +292,14 @@ export const getTransactionSummary = async (
   next: NextFunction
 ) => {
   try {
-    const timeRange = (req.query.time_range as string) || 'month';
+    const timeRange = (req.query.time_range as 'day' | 'week' | 'month') || 'month';
     const allowedRanges = ['day', 'week', 'month'];
 
     if (!allowedRanges.includes(timeRange)) {
       throw new AppError('time_range must be one of: day, week, month', 400);
     }
 
-    const startDate = getTimeRangeStart(timeRange);
-    const endDate = getTimeRangeEnd(timeRange);
-
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('type, nominal')
-      .gte('created_at', startDate)
-      .lt('created_at', endDate);
-
-    if (error) {
-      throw new AppError(`Failed to fetch transaction summary: ${error.message}`, 500);
-    }
-
-    const summary = {
-      total_debts: 0,
-      total_spending: 0,
-      total_earning: 0,
-    };
-
-    (data || []).forEach((transaction) => {
-      if (transaction.type === 'debts') {
-        summary.total_debts += transaction.nominal;
-      } else if (transaction.type === 'spending') {
-        summary.total_spending += transaction.nominal;
-      } else if (transaction.type === 'earning') {
-        summary.total_earning += transaction.nominal;
-      }
-    });
+    const summary = await transactionService.getSummary(timeRange);
 
     sendSuccess(res, summary, 'Transaction summary retrieved successfully');
   } catch (error) {

@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler';
 import {
   CreateTransactionDTO,
   Transaction,
+  TransactionType,
   UpdateTransactionDTO,
 } from '../models/transaction.model';
 
@@ -11,6 +12,7 @@ export interface ITransactionRepository {
   create(payload: CreateTransactionDTO): Promise<Transaction>;
   deleteById(id: string): Promise<Transaction>;
   updateById(id: string, payload: UpdateTransactionDTO): Promise<Transaction>;
+  getSummaryByRange(startDate: string, endDate: string): Promise<Array<{ type: TransactionType; nominal: number }>>;
 }
 
 export class SupabaseTransactionRepository implements ITransactionRepository {
@@ -99,5 +101,19 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
     }
 
     return data as Transaction;
+  }
+
+  async getSummaryByRange(startDate: string, endDate: string): Promise<Array<{ type: TransactionType; nominal: number }>> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('type, nominal')
+      .gte('created_at', startDate)
+      .lt('created_at', endDate);
+
+    if (error) {
+      throw new AppError(`Failed to fetch transaction summary: ${error.message}`, 500);
+    }
+
+    return (data || []) as Array<{ type: TransactionType; nominal: number }>;
   }
 }

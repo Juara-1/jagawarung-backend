@@ -59,3 +59,9 @@ export interface PaginatedTransactionsResponse {
   data: TransactionResponse[];
   pagination: PaginationInfo;
 }
+
+export interface TransactionSummary {
+  total_debts: number;
+  total_spending: number;
+  total_earning: number;
+}

@@ -4,6 +4,7 @@ import {
   Transaction,
   TransactionResponse,
   TRANSACTION_TYPES,
+  TransactionSummary,
   isTransactionType,
   UpdateTransactionDTO,
 } from '../models/transaction.model';
@@ -16,6 +17,7 @@ export interface ITransactionService {
   create(payload: CreateTransactionDTO): Promise<TransactionResponse>;
   delete(id: string): Promise<TransactionResponse>;
   update(id: string, payload: UpdateTransactionDTO): Promise<TransactionResponse>;
+  getSummary(timeRange: 'day' | 'week' | 'month'): Promise<TransactionSummary>;
 }
 
 export class TransactionService implements ITransactionService {
@@ -43,6 +45,31 @@ export class TransactionService implements ITransactionService {
 
     const transaction = await this.repository.updateById(id, payload);
     return this.toResponse(transaction);
+  }
+
+  async getSummary(timeRange: 'day' | 'week' | 'month'): Promise<TransactionSummary> {
+    const startDate = this.getTimeRangeStart(timeRange);
+    const endDate = this.getTimeRangeEnd(timeRange);
+
+    const transactions = await this.repository.getSummaryByRange(startDate, endDate);
+
+    const summary: TransactionSummary = {
+      total_debts: 0,
+      total_spending: 0,
+      total_earning: 0,
+    };
+
+    transactions.forEach((transaction) => {
+      if (transaction.type === 'debts') {
+        summary.total_debts += transaction.nominal;
+      } else if (transaction.type === 'spending') {
+        summary.total_spending += transaction.nominal;
+      } else if (transaction.type === 'earning') {
+        summary.total_earning += transaction.nominal;
+      }
+    });
+
+    return summary;
   }
 
   private validatePayload(
@@ -94,5 +121,51 @@ export class TransactionService implements ITransactionService {
       created_at: transaction.created_at,
       updated_at: transaction.updated_at,
     };
+  }
+
+  private getTimeRangeStart(timeRange: 'day' | 'week' | 'month'): string {
+    const now = new Date();
+
+    switch (timeRange) {
+      case 'day':
+        now.setHours(0, 0, 0, 0);
+        return now.toISOString();
+      case 'week': {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        const startOfWeek = new Date(now.setDate(diff));
+        startOfWeek.setHours(0, 0, 0, 0);
+        return startOfWeek.toISOString();
+      }
+      case 'month':
+        return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      default:
+        throw new AppError('Invalid time_range. Allowed values: day, week, month', 400);
+    }
+  }
+
+  private getTimeRangeEnd(timeRange: 'day' | 'week' | 'month'): string {
+    const now = new Date();
+
+    switch (timeRange) {
+      case 'day': {
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return tomorrow.toISOString();
+      }
+      case 'week': {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1) + 7;
+        const startOfNextWeek = new Date(now);
+        startOfNextWeek.setDate(diff);
+        startOfNextWeek.setHours(0, 0, 0, 0);
+        return startOfNextWeek.toISOString();
+      }
+      case 'month':
+        return new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+      default:
+        throw new AppError('Invalid time_range. Allowed values: day, week, month', 400);
+    }
   }
 }
