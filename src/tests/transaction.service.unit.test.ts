@@ -2,7 +2,9 @@ import { AppError } from '../middleware/errorHandler';
 import { TransactionService } from '../services/transaction.service';
 import {
   CreateTransactionDTO,
+  PaginatedTransactionsResponse,
   Transaction,
+  TransactionResponse,
   TransactionType,
 } from '../models/transaction.model';
 
@@ -21,6 +23,368 @@ describe('TransactionService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     service = new TransactionService(mockRepository as any);
+  });
+
+  describe('list', () => {
+    const mockTransactions: TransactionResponse[] = [
+      {
+        id: 'tx-1',
+        nominal: 100000,
+        debtor_name: null,
+        invoice_url: null,
+        invoice_data: null,
+        note: 'Test transaction 1',
+        created_at: '2025-12-06T10:00:00.000Z',
+        updated_at: '2025-12-06T10:00:00.000Z',
+      },
+      {
+        id: 'tx-2',
+        nominal: 50000,
+        debtor_name: 'John Doe',
+        invoice_url: null,
+        invoice_data: null,
+        note: 'Test transaction 2',
+        created_at: '2025-12-05T10:00:00.000Z',
+        updated_at: '2025-12-05T10:00:00.000Z',
+      },
+    ];
+
+    const mockPaginatedResponse: PaginatedTransactionsResponse = {
+      transactions: mockTransactions,
+      pagination: {
+        page: 1,
+        per_page: 10,
+        total_items: 2,
+        total_pages: 1,
+      },
+    };
+
+    it('should list transactions with default parameters', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      const result = await service.list({});
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith({
+        page: 1,
+        perPage: 10,
+        orderBy: 'created_at',
+        orderDirection: 'desc',
+        note: undefined,
+        types: undefined,
+        createdFrom: undefined,
+        createdTo: undefined,
+      });
+      expect(result).toEqual(mockPaginatedResponse);
+    });
+
+    it('should list transactions with custom pagination', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue({
+        ...mockPaginatedResponse,
+        pagination: { ...mockPaginatedResponse.pagination, page: 2, per_page: 20 },
+      });
+
+      // Act
+      await service.list({ page: '2', per_page: '20' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: 2,
+          perPage: 20,
+        })
+      );
+    });
+
+    it('should enforce minimum page value of 1', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({ page: '0' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: 1,
+        })
+      );
+    });
+
+    it('should enforce minimum per_page value of 1', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({ per_page: '0' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          perPage: 1,
+        })
+      );
+    });
+
+    it('should enforce maximum per_page value of 100', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({ per_page: '500' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          perPage: 100,
+        })
+      );
+    });
+
+    it('should list transactions with custom ordering', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({ order_by: 'nominal', order_direction: 'asc' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: 'nominal',
+          orderDirection: 'asc',
+        })
+      );
+    });
+
+    it('should list transactions with updated_at ordering', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({ order_by: 'updated_at' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: 'updated_at',
+        })
+      );
+    });
+
+    it('should throw error for invalid order_by value', async () => {
+      // Act & Assert
+      await expect(service.list({ order_by: 'invalid_field' })).rejects.toThrow(
+        new AppError('Invalid order_by value. Allowed values: created_at, updated_at, nominal', 400)
+      );
+      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
+    });
+
+    it('should throw error for invalid order_direction value', async () => {
+      // Act & Assert
+      await expect(service.list({ order_direction: 'invalid' })).rejects.toThrow(
+        new AppError('Invalid order_direction value. Allowed values: asc, desc', 400)
+      );
+      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
+    });
+
+    it('should list transactions with note filter', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({ note: 'test search' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          note: 'test search',
+        })
+      );
+    });
+
+    it('should list transactions with single type filter', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({ type: 'earning' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          types: ['earning'],
+        })
+      );
+    });
+
+    it('should list transactions with multiple type filters', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({ type: 'earning,spending' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          types: ['earning', 'spending'],
+        })
+      );
+    });
+
+    it('should handle type filter with extra spaces', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({ type: ' earning , spending , debts ' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          types: ['earning', 'spending', 'debts'],
+        })
+      );
+    });
+
+    it('should throw error for invalid type filter', async () => {
+      // Act & Assert
+      await expect(service.list({ type: 'invalid_type' })).rejects.toThrow(
+        new AppError('Invalid type value. Allowed values: spending, earning, debts', 400)
+      );
+      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when one of multiple types is invalid', async () => {
+      // Act & Assert
+      await expect(service.list({ type: 'earning,invalid' })).rejects.toThrow(
+        new AppError('Invalid type value. Allowed values: spending, earning, debts', 400)
+      );
+      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
+    });
+
+    it('should list transactions with created_from filter', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+      const dateFrom = '2025-12-01T00:00:00.000Z';
+
+      // Act
+      await service.list({ created_from: dateFrom });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createdFrom: dateFrom,
+        })
+      );
+    });
+
+    it('should list transactions with created_to filter', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+      const dateTo = '2025-12-31T23:59:59.000Z';
+
+      // Act
+      await service.list({ created_to: dateTo });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createdTo: dateTo,
+        })
+      );
+    });
+
+    it('should list transactions with date range filter', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+      const dateFrom = '2025-12-01T00:00:00.000Z';
+      const dateTo = '2025-12-31T23:59:59.000Z';
+
+      // Act
+      await service.list({ created_from: dateFrom, created_to: dateTo });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createdFrom: dateFrom,
+          createdTo: dateTo,
+        })
+      );
+    });
+
+    it('should throw error for invalid created_from date format', async () => {
+      // Act & Assert
+      await expect(service.list({ created_from: 'not-a-date' })).rejects.toThrow(
+        new AppError('Invalid created_from date. Use ISO format', 400)
+      );
+      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
+    });
+
+    it('should throw error for invalid created_to date format', async () => {
+      // Act & Assert
+      await expect(service.list({ created_to: 'invalid-date' })).rejects.toThrow(
+        new AppError('Invalid created_to date. Use ISO format', 400)
+      );
+      expect(mockRepository.listPaginated).not.toHaveBeenCalled();
+    });
+
+    it('should list transactions with all filters combined', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({
+        page: '2',
+        per_page: '25',
+        order_by: 'nominal',
+        order_direction: 'asc',
+        note: 'groceries',
+        type: 'spending,earning',
+        created_from: '2025-12-01T00:00:00.000Z',
+        created_to: '2025-12-31T23:59:59.000Z',
+      });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith({
+        page: 2,
+        perPage: 25,
+        orderBy: 'nominal',
+        orderDirection: 'asc',
+        note: 'groceries',
+        types: ['spending', 'earning'],
+        createdFrom: '2025-12-01T00:00:00.000Z',
+        createdTo: '2025-12-31T23:59:59.000Z',
+      });
+    });
+
+    it('should handle empty type filter string', async () => {
+      // Arrange
+      mockRepository.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+      // Act
+      await service.list({ type: '' });
+
+      // Assert
+      expect(mockRepository.listPaginated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          types: undefined,
+        })
+      );
+    });
+
+    it('should handle repository errors', async () => {
+      // Arrange
+      const repositoryError = new Error('Database connection failed');
+      mockRepository.listPaginated.mockRejectedValue(repositoryError);
+
+      // Act & Assert
+      await expect(service.list({})).rejects.toThrow(repositoryError);
+    });
   });
 
   describe('create', () => {
