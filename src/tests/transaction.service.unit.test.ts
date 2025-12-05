@@ -509,4 +509,124 @@ describe('TransactionService', () => {
       await expect(service.delete('test-id')).rejects.toThrow(repositoryError);
     });
   });
+
+  describe('getSummary', () => {
+    const mockTransactions = [
+      { type: 'earning' as TransactionType, nominal: 100000 },
+      { type: 'earning' as TransactionType, nominal: 50000 },
+      { type: 'spending' as TransactionType, nominal: 30000 },
+      { type: 'spending' as TransactionType, nominal: 20000 },
+      { type: 'debts' as TransactionType, nominal: 75000 },
+      { type: 'debts' as TransactionType, nominal: 25000 },
+    ];
+
+    it('should return correct summary for day range', async () => {
+      // Arrange
+      mockRepository.getSummaryByRange.mockResolvedValue(mockTransactions);
+
+      // Act
+      const result = await service.getSummary('day');
+
+      // Assert
+      expect(mockRepository.getSummaryByRange).toHaveBeenCalledWith(
+        expect.any(String), // start of day
+        expect.any(String)  // start of next day
+      );
+      expect(result).toEqual({
+        total_debts: 100000,
+        total_spending: 50000,
+        total_earning: 150000,
+      });
+    });
+
+    it('should return correct summary for week range', async () => {
+      // Arrange
+      mockRepository.getSummaryByRange.mockResolvedValue(mockTransactions);
+
+      // Act
+      const result = await service.getSummary('week');
+
+      // Assert
+      expect(mockRepository.getSummaryByRange).toHaveBeenCalledWith(
+        expect.any(String), // start of week
+        expect.any(String)  // start of next week
+      );
+      expect(result).toEqual({
+        total_debts: 100000,
+        total_spending: 50000,
+        total_earning: 150000,
+      });
+    });
+
+    it('should return correct summary for month range', async () => {
+      // Arrange
+      mockRepository.getSummaryByRange.mockResolvedValue(mockTransactions);
+
+      // Act
+      const result = await service.getSummary('month');
+
+      // Assert
+      expect(mockRepository.getSummaryByRange).toHaveBeenCalledWith(
+        expect.any(String), // start of month
+        expect.any(String)  // start of next month
+      );
+      expect(result).toEqual({
+        total_debts: 100000,
+        total_spending: 50000,
+        total_earning: 150000,
+      });
+    });
+
+    it('should return zero summary for empty transactions', async () => {
+      // Arrange
+      mockRepository.getSummaryByRange.mockResolvedValue([]);
+
+      // Act
+      const result = await service.getSummary('day');
+
+      // Assert
+      expect(result).toEqual({
+        total_debts: 0,
+        total_spending: 0,
+        total_earning: 0,
+      });
+    });
+
+    it('should handle partial transaction data', async () => {
+      // Arrange
+      const partialTransactions = [
+        { type: 'earning' as TransactionType, nominal: 100000 },
+        { type: 'spending' as TransactionType, nominal: 30000 },
+        // Missing debts
+      ];
+      mockRepository.getSummaryByRange.mockResolvedValue(partialTransactions);
+
+      // Act
+      const result = await service.getSummary('day');
+
+      // Assert
+      expect(result).toEqual({
+        total_debts: 0,
+        total_spending: 30000,
+        total_earning: 100000,
+      });
+    });
+
+    it('should handle repository errors', async () => {
+      // Arrange
+      const repositoryError = new Error('Database connection failed');
+      mockRepository.getSummaryByRange.mockRejectedValue(repositoryError);
+
+      // Act & Assert
+      await expect(service.getSummary('day')).rejects.toThrow(repositoryError);
+    });
+
+    it('should throw error for invalid time range', async () => {
+      // Act & Assert
+      await expect(service.getSummary('invalid' as any)).rejects.toThrow(
+        new AppError('Invalid time_range. Allowed values: day, week, month', 400)
+      );
+      expect(mockRepository.getSummaryByRange).not.toHaveBeenCalled();
+    });
+  });
 });
