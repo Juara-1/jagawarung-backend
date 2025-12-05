@@ -4,10 +4,13 @@ import { AppError } from '../middleware/errorHandler';
 import {
   CreateTransactionDTO,
   Transaction,
+  UpdateTransactionDTO,
 } from '../models/transaction.model';
 
 export interface ITransactionRepository {
   create(payload: CreateTransactionDTO): Promise<Transaction>;
+  deleteById(id: string): Promise<Transaction>;
+  updateById(id: string, payload: UpdateTransactionDTO): Promise<Transaction>;
 }
 
 export class SupabaseTransactionRepository implements ITransactionRepository {
@@ -22,8 +25,12 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
     };
   }
 
-  private handleError(error: PostgrestError): never {
-    throw new AppError(`Failed to create transaction: ${error.message}`, 400);
+  private handleError(error: PostgrestError, action: string): never {
+    if (error.code === 'PGRST116') {
+      throw new AppError('Transaction not found', 404);
+    }
+
+    throw new AppError(`Failed to ${action} transaction: ${error.message}`, 400);
   }
 
   async create(payload: CreateTransactionDTO): Promise<Transaction> {
@@ -36,11 +43,59 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
       .single();
 
     if (error) {
-      this.handleError(error);
+      this.handleError(error, 'create');
     }
 
     if (!data) {
       throw new AppError('Failed to create transaction: empty response', 500);
+    }
+
+    return data as Transaction;
+  }
+
+  async deleteById(id: string): Promise<Transaction> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      this.handleError(error, 'delete');
+    }
+
+    if (!data) {
+      throw new AppError('Transaction not found', 404);
+    }
+
+    return data as Transaction;
+  }
+
+  async updateById(id: string, payload: UpdateTransactionDTO): Promise<Transaction> {
+    const updatePayload = {
+      debtor_name: payload.debtorName ?? null,
+      nominal: payload.nominal!,
+      type: payload.type!,
+      note: payload.note ?? null,
+      invoice_url: payload.invoiceUrl ?? null,
+      invoice_data: payload.invoiceData ?? null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      this.handleError(error, 'update');
+    }
+
+    if (!data) {
+      throw new AppError('Transaction not found', 404);
     }
 
     return data as Transaction;
