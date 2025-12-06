@@ -1,7 +1,7 @@
 # Jagawarung Backend - AI Assistant Instructions
 
 ## Architecture Overview
-This is a Node.js/TypeScript REST API using Express and Supabase as the backend database. The project follows a clean MVC pattern with clear separation of concerns.
+This is a Node.js/TypeScript REST API using Express and Supabase as the backend database. The project follows a clean layered architecture pattern with clear separation of concerns.
 
 ### Key Components
 - **Supabase Integration**: Uses two clients - `supabase` (RLS-enabled) and `supabaseAdmin` (bypasses RLS)
@@ -37,7 +37,7 @@ src/
 - `npm run test:integration:coverage` - Generate coverage for integration tests
 
 ### Test Configuration
-- Unit tests: `**/*.unit.test.ts` files (e.g., agent.controller.unit.test.ts)
+- Unit tests: `**/*.unit.test.ts` files (e.g., transaction.service.unit.test.ts)
 - Integration tests: `**/*.integration.test.ts` files (e.g., transaction.controller.integration.test.ts)
 - Test setup: Separate setup files in tests/ and tests/integration/ directories
 - Test mocks: Located in tests/mocks/ directory
@@ -99,10 +99,13 @@ sendError(res, message, statusCode);
 ## Adding New Features
 
 1. Create model interface in `src/models/`
-2. Create controller with JSDoc comments in `src/controllers/`
-3. Create routes in `src/routes/`
-4. Register routes in `src/routes/index.ts`
-5. Add authentication middleware if needed
+2. Create repository for data access in `src/repositories/`
+3. Create service for business logic in `src/services/`
+4. Create controller with JSDoc comments in `src/controllers/`
+5. Create routes in `src/routes/`
+6. Register routes in `src/routes/index.ts`
+7. Add authentication middleware if needed
+8. Create validation schema in `src/validators/` if needed
 
 ## Environment Configuration
 - Main config: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`

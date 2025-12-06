@@ -1,129 +1,119 @@
+import OpenAI from 'openai';
 import { config } from '../config';
-import { AppError } from '../middleware/errorHandler';
+import { ParsedDebtIntent, AICompletionOptions } from '../models/agent.model';
+import { DEBT_PARSER_RESPONSE_SCHEMA } from '../prompts/debt-parser.prompt';
 
-const {
-  provider,
-  baseUrl,
-  apiKey,
-  defaultModel,
-  requestTimeoutMs,
-} = config.ai;
+/**
+ * AI Service for OpenAI-compatible API interactions
+ * 
+ * Uses the OpenAI SDK to communicate with OpenAI-compatible endpoints
+ * configured via environment variables in config.ai
+ */
+export class AIService {
+  private client: OpenAI;
+  private defaultModel: string;
 
-interface AiMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
-interface AiRequestOptions {
-  model?: string;
-  temperature?: number;
-  maxTokens?: number;
-  systemPrompt?: string;
-}
-
-interface AiResponseChoice {
-  index: number;
-  message: AiMessage;
-  finish_reason?: string;
-}
-
-interface AiResponseBody {
-  id: string;
-  object: string;
-  created: number;
-  model: string;
-  choices: AiResponseChoice[];
-}
-
-const buildHeaders = () => {
-  if (!apiKey) {
-    throw new AppError('AI provider API key is not configured', 500);
+  constructor() {
+    this.client = new OpenAI({
+      apiKey: config.ai.apiKey,
+      baseURL: config.ai.baseUrl,
+      timeout: config.ai.requestTimeoutMs,
+    });
+    this.defaultModel = config.ai.defaultModel;
   }
 
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-  };
-};
-
-const ensureFetchAvailable = (): typeof fetch => {
-  if (typeof fetch !== 'function') {
-    throw new AppError('Fetch API is not available in this environment', 500);
-  }
-
-  return fetch;
-};
-
-const handleErrorResponse = async (response: Response): Promise<never> => {
-  let errorBody: any = {};
-  try {
-    errorBody = await response.json();
-  } catch (err) {
-    // ignore json parse errors
-  }
-
-  const message =
-    errorBody?.error?.message ||
-    errorBody?.message ||
-    `AI provider ${provider} responded with status ${response.status}`;
-
-  throw new AppError(message, response.status);
-};
-
-export const sendPrompt = async (
-  prompt: string,
-  options: AiRequestOptions = {}
-) => {
-  const model = options.model || defaultModel;
-
-  const body = {
-    model,
-    temperature: options.temperature ?? 0.7,
-    max_tokens: options.maxTokens,
-    messages: [
-      options.systemPrompt
-        ? { role: 'system', content: options.systemPrompt }
-        : null,
-      { role: 'user', content: prompt },
-    ].filter(Boolean),
-  };
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
-  const fetchFn = ensureFetchAvailable();
-
-  try {
-    const response = await fetchFn(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: buildHeaders(),
-      body: JSON.stringify(body),
-      signal: controller.signal,
+  /**
+   * Parse a user prompt about debts and return structured data
+   * 
+   * @param userPrompt - The user's natural language prompt
+   * @param systemPrompt - The system prompt to guide the AI
+   * @returns Parsed debt intent with action, debtor name, and nominal
+   */
+  async parseDebtPrompt(
+    userPrompt: string,
+    systemPrompt: string
+  ): Promise<ParsedDebtIntent> {
+    const response = await this.client.chat.completions.create({
+      model: this.defaultModel,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'parsed_debt_intent',
+          strict: true,
+          schema: DEBT_PARSER_RESPONSE_SCHEMA,
+        },
+      },
+      temperature: 0, // Deterministic output for consistent parsing
     });
 
-    clearTimeout(timeout);
+    const content = response.choices[0]?.message?.content;
 
-    if (!response.ok) {
-      return handleErrorResponse(response);
+    if (!content) {
+      throw new Error('AI returned empty response');
     }
 
-    const data: AiResponseBody = await response.json() as AiResponseBody;
-
-    if (!data?.choices?.length) {
-      throw new AppError('AI provider returned no choices', 502);
-    }
-
-    return data.choices[0].message;
-  } catch (error: any) {
-    clearTimeout(timeout);
-
-    if (error.name === 'AbortError') {
-      throw new AppError('AI provider request timed out', 504);
-    }
-
-    if (error instanceof AppError) {
-      throw error;
-    }
-
-    throw new AppError(error.message || 'Failed to call AI provider', 500);
+    const parsed = JSON.parse(content) as ParsedDebtIntent;
+    
+    // Ensure original_prompt is set correctly
+    parsed.original_prompt = userPrompt;
+    
+    return parsed;
   }
+
+  /**
+   * Generic method for AI completions with structured JSON output
+   * Can be extended for other use cases
+   * 
+   * @param options - Completion options including prompts and model settings
+   * @returns The parsed JSON response from the AI
+   */
+  async getStructuredCompletion<T>(
+    options: AICompletionOptions,
+    responseSchema: Record<string, unknown>
+  ): Promise<T> {
+    const { systemPrompt, userPrompt, model, temperature = 0 } = options;
+
+    const response = await this.client.chat.completions.create({
+      model: model || this.defaultModel,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'structured_response',
+          strict: true,
+          schema: responseSchema,
+        },
+      },
+      temperature,
+    });
+
+    const content = response.choices[0]?.message?.content;
+
+    if (!content) {
+      throw new Error('AI returned empty response');
+    }
+
+    return JSON.parse(content) as T;
+  }
+}
+
+// Singleton instance for convenience
+let aiServiceInstance: AIService | null = null;
+
+/**
+ * Get or create the AI service singleton
+ */
+export const getAIService = (): AIService => {
+  if (!aiServiceInstance) {
+    aiServiceInstance = new AIService();
+  }
+  return aiServiceInstance;
 };
+

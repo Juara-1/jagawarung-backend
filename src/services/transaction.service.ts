@@ -34,6 +34,8 @@ export interface ITransactionService {
   delete(id: string): Promise<TransactionResponse>;
   update(id: string, payload: UpdateTransactionDTO): Promise<TransactionResponse>;
   repayDebt(id: string): Promise<TransactionResponse>;
+  repayDebtByDebtorName(debtorName: string): Promise<TransactionResponse>;
+  findDebtByDebtorName(debtorName: string): Promise<TransactionResponse | null>;
   getSummary(timeRange: 'day' | 'week' | 'month'): Promise<TransactionSummary>;
 }
 
@@ -98,28 +100,50 @@ export class TransactionService implements ITransactionService {
   async repayDebt(id: string): Promise<TransactionResponse> {
     // First, get the transaction to verify it exists and is a debt
     const existingTransaction = await this.repository.findById(id);
-    
+
     if (!existingTransaction) {
       throw new Error('Transaction not found');
     }
-    
+
     if (existingTransaction.type !== 'debts') {
       throw new Error('Transaction is not a debt');
     }
-    
+
     if (!existingTransaction.debtor_name) {
       throw new Error('Debt transaction has no debtor name');
     }
-    
+
     // Update the transaction to mark it as repaid
     const updatePayload: UpdateTransactionDTO = {
       type: 'earning',
       debtor_name: null,
       note: `Pembayaran Hutang ${existingTransaction.debtor_name}`,
     };
-    
+
     const updatedTransaction = await this.repository.updateById(id, updatePayload);
     return this.toResponse(updatedTransaction);
+  }
+
+  async repayDebtByDebtorName(debtorName: string): Promise<TransactionResponse> {
+    // Find the debt transaction by debtor name
+    const existingDebt = await this.repository.findDebtByDebtorName(debtorName);
+
+    if (!existingDebt) {
+      throw new Error(`No debt found for debtor: ${debtorName}`);
+    }
+
+    // Use the existing repayDebt method with the found ID
+    return this.repayDebt(existingDebt.id);
+  }
+
+  async findDebtByDebtorName(debtorName: string): Promise<TransactionResponse | null> {
+    const debt = await this.repository.findDebtByDebtorName(debtorName);
+
+    if (!debt) {
+      return null;
+    }
+
+    return this.toResponse(debt);
   }
 
   async getSummary(timeRange: 'day' | 'week' | 'month'): Promise<TransactionSummary> {
