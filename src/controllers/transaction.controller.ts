@@ -1,15 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendPaginatedSuccess } from '../utils/response';
 import { AppError } from '../middleware/errorHandler';
-import { TransactionService } from '../services/transaction.service';
+import { TransactionService, ValidatedListQuery } from '../services/transaction.service';
 import {
   CreateTransactionDTO,
   UpdateTransactionDTO,
 } from '../models/transaction.model';
-import {
-  transactionListQuerySchema,
-  transactionSummaryQuerySchema,
-} from '../validators/transaction.schema';
 
 /**
  * A transaction record
@@ -46,11 +42,9 @@ export const getTransactions = async (
   next: NextFunction
 ) => {
   try {
-    const parseResult = transactionListQuerySchema.safeParse(req.query);
-    if (!parseResult.success) {
-      throw new AppError(parseResult.error.issues[0].message, 400);
-    }
-    const { transactions, pagination } = await transactionService.list(parseResult.data);
+    // req.query is already validated and transformed by the validate middleware
+    const queryParams = req.query as unknown as ValidatedListQuery;
+    const { transactions, pagination } = await transactionService.list(queryParams);
     sendPaginatedSuccess(res, transactions, pagination, 'Transactions retrieved successfully');
   } catch (error) {
     next(error);
@@ -164,12 +158,10 @@ export const getTransactionSummary = async (
   next: NextFunction
 ) => {
   try {
-    const parseResult = transactionSummaryQuerySchema.safeParse(req.query);
-    if (!parseResult.success) {
-      throw new AppError(parseResult.error.issues[0].message, 400);
-    }
+    // req.query is already validated and transformed by the validate middleware
+    const { time_range } = req.query as { time_range: 'day' | 'week' | 'month' };
 
-    const summary = await transactionService.getSummary(parseResult.data.time_range);
+    const summary = await transactionService.getSummary(time_range);
 
     sendSuccess(res, summary, 'Transaction summary retrieved successfully');
   } catch (error) {
