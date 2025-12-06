@@ -19,17 +19,19 @@ jagawarung-backend/
 │   │   ├── index.ts      # Main config
 │   │   └── supabase.ts   # Supabase client setup
 │   ├── controllers/      # Request handlers
-│   │   └── example.controller.ts
+│   │   ├── agent.controller.ts
+│   │   └── transaction.controller.ts
 │   ├── middleware/       # Express middleware
 │   │   ├── auth.ts       # Authentication middleware
 │   │   ├── errorHandler.ts
 │   │   └── notFound.ts
 │   ├── models/           # TypeScript interfaces/types
-│   │   ├── example.model.ts
+│   │   ├── transaction.model.ts
 │   │   └── user.model.ts
 │   ├── routes/           # API routes
 │   │   ├── index.ts      # Main router
-│   │   └── example.routes.ts
+│   │   ├── agent.routes.ts
+│   │   └── transaction.routes.ts
 │   ├── types/            # Custom TypeScript types
 │   │   └── index.ts
 │   ├── utils/            # Helper functions
@@ -139,12 +141,7 @@ Visit `http://localhost:3000/health` to check if the server is running.
 ### Health Check
 - `GET /health` - Check server status
 
-### Examples (Template)
-- `GET /api/examples` - Get all examples
-- `GET /api/examples/:id` - Get example by ID
-- `POST /api/examples` - Create new example (requires auth)
-- `PUT /api/examples/:id` - Update example (requires auth)
-- `DELETE /api/examples/:id` - Delete example (requires auth)
+
 
 ### AI Agent
 - `POST /api/agent` - Send a prompt to the AI agent, or set `useMcp=true` with `toolName` to call Supabase MCP tools
