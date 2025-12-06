@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Validation schema for POST /api/agent/debts request body
+ * Validation schema for POST /api/agent/transactions request body
  */
 export const agentDebtsRequestSchema = z.object({
   prompt: z
@@ -13,6 +13,7 @@ export const agentDebtsRequestSchema = z.object({
     })
     .min(1, { message: 'prompt cannot be empty' })
     .max(2000, { message: 'prompt cannot exceed 2000 characters' }),
+  type: z.literal('debts', { error: 'type must be "debts"' }),
 });
 
 /**

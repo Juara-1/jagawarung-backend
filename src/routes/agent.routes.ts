@@ -6,7 +6,7 @@ import { processDebtPrompt } from '../controllers/agent.controller';
 const router = Router();
 
 /**
- * POST /api/agent/debts
+ * POST /api/agent/transactions
  * @summary Process a natural language prompt about debts using AI and execute the appropriate action, if possible
  * @tags Agent
  * @param {object} request.body.required - Request body
@@ -14,6 +14,6 @@ const router = Router();
  * @return {object} 200 - Processed debt prompt
  * @return {object} 400 - Validation error
  */
-router.post('/debts', validate(agentDebtsRequestSchema, 'body'), processDebtPrompt);
+router.post('/transactions', validate(agentDebtsRequestSchema, 'body'), processDebtPrompt);
 
 export default router;

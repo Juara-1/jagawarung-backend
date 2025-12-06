@@ -7,7 +7,7 @@ import { AgentService } from '../services/agent.service';
 const agentService = AgentService.withDefaults();
 
 /**
- * POST /api/agent/debts
+ * POST /api/agent/transactions
  * @summary Process a natural language prompt about debts using AI and execute the appropriate action, if possible
  * @tags Agent
  * @param {AgentDebtsRequest} request.body.required - User prompt to process

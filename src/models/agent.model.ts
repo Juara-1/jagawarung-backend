@@ -8,7 +8,7 @@
 // ============================================================================
 
 /**
- * Request body for POST /api/agent/debts
+ * Request body for POST /api/agent/transactions
  */
 export interface AgentDebtsRequest {
   prompt: string;
