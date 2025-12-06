@@ -273,6 +273,38 @@ describe('Transaction Controller Integration Tests', () => {
 
       expectErrorResponse(response, 400);
     });
+
+    it('should return 400 for invalid order_direction value', async () => {
+      const response = await request(app)
+        .get('/api/transactions')
+        .query({ order_direction: 'invalid_direction' });
+
+      expectErrorResponse(response, 400);
+    });
+
+    it('should return 400 for invalid type filter value', async () => {
+      const response = await request(app)
+        .get('/api/transactions')
+        .query({ type: 'invalid_type' });
+
+      expectErrorResponse(response, 400);
+    });
+
+    it('should return 400 for invalid created_from date format', async () => {
+      const response = await request(app)
+        .get('/api/transactions')
+        .query({ created_from: 'not-a-date' });
+
+      expectErrorResponse(response, 400);
+    });
+
+    it('should return 400 for invalid created_to date format', async () => {
+      const response = await request(app)
+        .get('/api/transactions')
+        .query({ created_to: 'invalid-date' });
+
+      expectErrorResponse(response, 400);
+    });
   });
 
 
@@ -440,6 +472,61 @@ describe('Transaction Controller Integration Tests', () => {
         .send(updateData);
 
       expectErrorResponse(response, 404);
+    });
+
+    it('should return 400 for invalid UUID format', async () => {
+      const updateData = {
+        nominal: 75000,
+        type: 'spending',
+        note: 'Updated note'
+      };
+
+      const response = await request(app)
+        .put('/api/transactions/invalid-uuid')
+        .send(updateData);
+
+      expectErrorResponse(response, 400);
+    });
+
+    it('should return 400 for missing nominal', async () => {
+      const updateData = {
+        type: 'spending',
+        note: 'Missing nominal'
+      };
+
+      const response = await request(app)
+        .put(`/api/transactions/${testTransactionId}`)
+        .send(updateData);
+
+      expectErrorResponse(response, 400);
+    });
+
+    it('should return 400 for invalid type', async () => {
+      const updateData = {
+        nominal: 75000,
+        type: 'invalid_type',
+        note: 'Invalid type'
+      };
+
+      const response = await request(app)
+        .put(`/api/transactions/${testTransactionId}`)
+        .send(updateData);
+
+      expectErrorResponse(response, 400);
+    });
+
+    it('should return 400 when updating to debts without debtor_name', async () => {
+      const updateData = {
+        nominal: 75000,
+        type: 'debts',
+        note: 'Missing debtor_name'
+      };
+
+      const response = await request(app)
+        .put(`/api/transactions/${testTransactionId}`)
+        .send(updateData);
+
+      expectErrorResponse(response, 400);
     });
   });
 

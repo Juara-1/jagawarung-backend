@@ -3,6 +3,7 @@ import * as transactionController from '../controllers/transaction.controller';
 import { validate } from '../middleware/validate';
 import {
   transactionCreateSchema,
+  transactionUpdateSchema,
   transactionIdParamSchema,
   transactionListQuerySchema,
   transactionSummaryQuerySchema,
@@ -20,7 +21,7 @@ router.get('/summary', validate(transactionSummaryQuerySchema, 'query'), transac
 router.post('/', validate(transactionCreateSchema), transactionController.createTransaction);
 
 // Update transaction
-router.put('/:id',  validate(transactionIdParamSchema, 'params'), transactionController.updateTransactionById);
+router.put('/:id', validate(transactionIdParamSchema, 'params'), validate(transactionUpdateSchema), transactionController.updateTransactionById);
 
 // Delete transaction by id
 router.delete('/:id', validate(transactionIdParamSchema, 'params'), transactionController.deleteTransactionById);
