@@ -17,6 +17,8 @@ export interface ITransactionRepository {
   updateById(id: string, payload: UpdateTransactionDTO): Promise<Transaction>;
   getSummaryByRange(startDate: string, endDate: string): Promise<Array<{ type: TransactionType; nominal: number }>>;
   listPaginated(filters: TransactionFilterOptions): Promise<PaginatedTransactionsResponse>;
+  findDebtByDebtorName(debtorName: string): Promise<Transaction | null>;
+  accumulateDebt(id: string, additionalNominal: number, payload: Partial<CreateTransactionDTO>): Promise<Transaction>;
 }
 
 export class SupabaseTransactionRepository implements ITransactionRepository {
@@ -201,5 +203,60 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
         total_pages: totalPages,
       },
     };
+  }
+
+  async findDebtByDebtorName(debtorName: string): Promise<Transaction | null> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('type', 'debts')
+      .ilike('debtor_name', debtorName)
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError(`Failed to find debt transaction: ${error.message}`, 500);
+    }
+
+    return data as Transaction | null;
+  }
+
+  async accumulateDebt(
+    id: string,
+    additionalNominal: number,
+    payload: Partial<CreateTransactionDTO>
+  ): Promise<Transaction> {
+    // Build update object with only provided fields
+    const updatePayload: Record<string, unknown> = {
+      nominal: additionalNominal,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Only update optional fields if they are explicitly provided (not undefined)
+    if (payload.note !== undefined) {
+      updatePayload.note = payload.note;
+    }
+    if (payload.invoice_url !== undefined) {
+      updatePayload.invoice_url = payload.invoice_url;
+    }
+    if (payload.invoice_data !== undefined) {
+      updatePayload.invoice_data = payload.invoice_data;
+    }
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      this.handleError(error, 'accumulate debt');
+    }
+
+    if (!data) {
+      throw new AppError('Transaction not found', 404);
+    }
+
+    return data as Transaction;
   }
 }

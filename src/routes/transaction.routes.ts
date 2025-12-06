@@ -3,6 +3,7 @@ import * as transactionController from '../controllers/transaction.controller';
 import { validate } from '../middleware/validate';
 import {
   transactionCreateSchema,
+  transactionCreateQuerySchema,
   transactionUpdateSchema,
   transactionIdParamSchema,
   transactionListQuerySchema,
@@ -18,7 +19,7 @@ router.get('/', validate(transactionListQuerySchema, 'query'), transactionContro
 router.get('/summary', validate(transactionSummaryQuerySchema, 'query'), transactionController.getTransactionSummary);
 
 // Create transaction
-router.post('/', validate(transactionCreateSchema), transactionController.createTransaction);
+router.post('/', validate(transactionCreateQuerySchema, 'query'), validate(transactionCreateSchema), transactionController.createTransaction);
 
 // Update transaction
 router.put('/:id', validate(transactionIdParamSchema, 'params'), validate(transactionUpdateSchema), transactionController.updateTransactionById);

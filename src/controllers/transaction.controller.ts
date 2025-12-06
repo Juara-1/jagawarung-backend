@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendPaginatedSuccess } from '../utils/response';
 import { AppError } from '../middleware/errorHandler';
-import { TransactionService, ValidatedListQuery } from '../services/transaction.service';
+import { TransactionService, ValidatedListQuery, CreateTransactionOptions } from '../services/transaction.service';
 import {
   CreateTransactionDTO,
   UpdateTransactionDTO,
@@ -66,6 +66,7 @@ export const getTransactions = async (
  * POST /api/transactions
  * @summary Create a new transaction record
  * @tags Transactions
+ * @param {boolean} upsert.query - When true and type is 'debts', accumulates nominal for existing debtor_name
  * @param {CreateTransactionRequest} request.body.required - Transaction payload
  * @return {TransactionResponse} 201 - Transaction created successfully
  * @return {object} 400 - Validation error
@@ -79,7 +80,11 @@ export const createTransaction = async (
 ) => {
   try {
     const payload = req.body as CreateTransactionDTO;
-    const response = await transactionService.create(payload);
+    // Query is validated and transformed by middleware - upsert is now a boolean
+    const { upsert } = req.query as unknown as { upsert: boolean };
+
+    const options: CreateTransactionOptions = { upsert };
+    const response = await transactionService.create(payload, options);
 
     sendSuccess(res, response, 'Transaction created successfully', 201);
   } catch (error) {

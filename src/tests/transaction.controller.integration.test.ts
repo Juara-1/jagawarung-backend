@@ -166,6 +166,191 @@ describe('Transaction Controller Integration Tests', () => {
     });
   });
 
+  describe('POST /api/transactions with upsert', () => {
+    beforeEach(async () => {
+      // Clean existing data before each test
+      await testSetup.client.from('transactions').delete().gte('id', '00000000-0000-0000-0000-000000000000');
+    });
+
+    it('should create a new debt transaction when upsert=true and no existing debt', async () => {
+      const transactionData = {
+        nominal: 50000,
+        type: 'debts',
+        debtor_name: `New Debtor ${Date.now()}`,
+        note: 'First debt'
+      };
+
+      const response = await request(app)
+        .post('/api/transactions')
+        .query({ upsert: 'true' })
+        .send(transactionData);
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.nominal).toBe(50000);
+      expect(response.body.data.debtor_name).toBe(transactionData.debtor_name);
+    });
+
+    it('should accumulate nominal when upsert=true and debt exists', async () => {
+      const debtorName = `Accumulate Debtor ${Date.now()}`;
+
+      // First, create an initial debt
+      const initialDebt = {
+        nominal: 100000,
+        type: 'debts',
+        debtor_name: debtorName,
+        note: 'Initial debt'
+      };
+
+      const createResponse = await request(app)
+        .post('/api/transactions')
+        .send(initialDebt);
+
+      expect(createResponse.status).toBe(201);
+      const initialId = createResponse.body.data.id;
+
+      // Now upsert with additional amount
+      const additionalDebt = {
+        nominal: 50000,
+        type: 'debts',
+        debtor_name: debtorName,
+        note: 'Additional debt'
+      };
+
+      const upsertResponse = await request(app)
+        .post('/api/transactions')
+        .query({ upsert: 'true' })
+        .send(additionalDebt);
+
+      expect(upsertResponse.status).toBe(201);
+      expect(upsertResponse.body.success).toBe(true);
+      expect(upsertResponse.body.data.id).toBe(initialId); // Same record
+      expect(upsertResponse.body.data.nominal).toBe(150000); // 100000 + 50000
+
+      // Verify in database
+      const { data: dbTransaction } = await testSetup.client
+        .from('transactions')
+        .select('*')
+        .eq('id', initialId)
+        .single();
+
+      expect(dbTransaction.nominal).toBe(150000);
+    });
+
+    it('should accumulate nominal case-insensitively', async () => {
+      const debtorName = `Case Test ${Date.now()}`;
+
+      // Create initial debt with lowercase
+      await request(app)
+        .post('/api/transactions')
+        .send({
+          nominal: 100000,
+          type: 'debts',
+          debtor_name: debtorName.toLowerCase(),
+          note: 'Initial'
+        });
+
+      // Upsert with uppercase - should match
+      const upsertResponse = await request(app)
+        .post('/api/transactions')
+        .query({ upsert: 'true' })
+        .send({
+          nominal: 50000,
+          type: 'debts',
+          debtor_name: debtorName.toUpperCase(),
+          note: 'Additional'
+        });
+
+      expect(upsertResponse.status).toBe(201);
+      expect(upsertResponse.body.data.nominal).toBe(150000);
+    });
+
+    it('should update optional fields when upserting', async () => {
+      const debtorName = `Update Fields ${Date.now()}`;
+
+      // Create initial debt
+      await request(app)
+        .post('/api/transactions')
+        .send({
+          nominal: 100000,
+          type: 'debts',
+          debtor_name: debtorName,
+          note: 'Original note'
+        });
+
+      // Upsert with new note and invoice
+      const upsertResponse = await request(app)
+        .post('/api/transactions')
+        .query({ upsert: 'true' })
+        .send({
+          nominal: 25000,
+          type: 'debts',
+          debtor_name: debtorName,
+          note: 'Updated note',
+          invoice_url: 'https://example.com/receipt.pdf'
+        });
+
+      expect(upsertResponse.status).toBe(201);
+      expect(upsertResponse.body.data.nominal).toBe(125000);
+      expect(upsertResponse.body.data.note).toBe('Updated note');
+      expect(upsertResponse.body.data.invoice_url).toBe('https://example.com/receipt.pdf');
+    });
+
+    it('should create new transaction when upsert=false (default)', async () => {
+      const debtorName = `No Upsert ${Date.now()}`;
+
+      // Create initial debt
+      await request(app)
+        .post('/api/transactions')
+        .send({
+          nominal: 100000,
+          type: 'debts',
+          debtor_name: debtorName,
+          note: 'First'
+        });
+
+      // Try to create another without upsert - should fail due to unique constraint
+      const secondResponse = await request(app)
+        .post('/api/transactions')
+        .send({
+          nominal: 50000,
+          type: 'debts',
+          debtor_name: debtorName,
+          note: 'Second'
+        });
+
+      // Should fail due to unique constraint on debtor_name
+      expect(secondResponse.status).toBe(400);
+    });
+
+    it('should not apply upsert for non-debt transactions', async () => {
+      // Create initial spending
+      const createResponse = await request(app)
+        .post('/api/transactions')
+        .send({
+          nominal: 100000,
+          type: 'spending',
+          note: 'First spending'
+        });
+
+      expect(createResponse.status).toBe(201);
+
+      // Create another spending with upsert - should create new record
+      const upsertResponse = await request(app)
+        .post('/api/transactions')
+        .query({ upsert: 'true' })
+        .send({
+          nominal: 50000,
+          type: 'spending',
+          note: 'Second spending'
+        });
+
+      expect(upsertResponse.status).toBe(201);
+      expect(upsertResponse.body.data.id).not.toBe(createResponse.body.data.id);
+      expect(upsertResponse.body.data.nominal).toBe(50000); // Not accumulated
+    });
+  });
+
   describe('GET /api/transactions', () => {
     beforeEach(async () => {
       // Clean existing data first

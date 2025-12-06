@@ -145,3 +145,11 @@ export const transactionSummaryQuerySchema = z.object({
     error: () => 'Invalid time_range value. Allowed values: day, week, month',
   }),
 });
+
+export const transactionCreateQuerySchema = z.object({
+  upsert: z
+    .string()
+    .optional()
+    .default('false')
+    .transform((val) => val === 'true'),
+});

@@ -24,9 +24,13 @@ export interface ValidatedListQuery {
   created_to?: string;
 }
 
+export interface CreateTransactionOptions {
+  upsert?: boolean;
+}
+
 export interface ITransactionService {
   list(query: ValidatedListQuery): Promise<PaginatedTransactionsResponse>;
-  create(payload: CreateTransactionDTO): Promise<TransactionResponse>;
+  create(payload: CreateTransactionDTO, options?: CreateTransactionOptions): Promise<TransactionResponse>;
   delete(id: string): Promise<TransactionResponse>;
   update(id: string, payload: UpdateTransactionDTO): Promise<TransactionResponse>;
   getSummary(timeRange: 'day' | 'week' | 'month'): Promise<TransactionSummary>;
@@ -53,7 +57,29 @@ export class TransactionService implements ITransactionService {
     return this.repository.listPaginated(filters);
   }
 
-  async create(payload: CreateTransactionDTO): Promise<TransactionResponse> {
+  async create(
+    payload: CreateTransactionDTO,
+    options: CreateTransactionOptions = {}
+  ): Promise<TransactionResponse> {
+    const { upsert = false } = options;
+
+    // Handle upsert for debt transactions
+    if (upsert && payload.type === 'debts' && payload.debtor_name) {
+      const existingDebt = await this.repository.findDebtByDebtorName(payload.debtor_name);
+
+      if (existingDebt) {
+        // Accumulate the nominal value and update other fields if provided
+        const newNominal = existingDebt.nominal + payload.nominal;
+        const transaction = await this.repository.accumulateDebt(
+          existingDebt.id,
+          newNominal,
+          payload
+        );
+        return this.toResponse(transaction);
+      }
+    }
+
+    // Default behavior: create a new transaction
     const transaction = await this.repository.create(payload);
     return this.toResponse(transaction);
   }

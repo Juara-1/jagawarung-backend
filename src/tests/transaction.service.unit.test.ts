@@ -14,6 +14,8 @@ const mockRepository = {
   updateById: jest.fn(),
   getSummaryByRange: jest.fn(),
   listPaginated: jest.fn(),
+  findDebtByDebtorName: jest.fn(),
+  accumulateDebt: jest.fn(),
 };
 
 // Default validated query for list tests
@@ -387,6 +389,196 @@ describe('TransactionService', () => {
 
       // Act & Assert
       await expect(service.create(validPayload)).rejects.toThrow(repositoryError);
+    });
+  });
+
+  describe('create with upsert', () => {
+    const debtPayload: CreateTransactionDTO = {
+      nominal: 50000,
+      type: 'debts',
+      debtor_name: 'John Doe',
+      note: 'Initial debt',
+    };
+
+    const existingDebtTransaction: Transaction = {
+      id: 'existing-debt-id',
+      nominal: 100000,
+      debtor_name: 'John Doe',
+      invoice_url: null,
+      invoice_data: null,
+      note: 'Original debt note',
+      type: 'debts',
+      created_at: '2025-12-01T10:00:00.000Z',
+      updated_at: '2025-12-01T10:00:00.000Z',
+    };
+
+    const accumulatedDebtTransaction: Transaction = {
+      id: 'existing-debt-id',
+      nominal: 150000,
+      debtor_name: 'John Doe',
+      invoice_url: null,
+      invoice_data: null,
+      note: 'Initial debt',
+      type: 'debts',
+      created_at: '2025-12-01T10:00:00.000Z',
+      updated_at: '2025-12-06T10:00:00.000Z',
+    };
+
+    it('should accumulate nominal when upsert=true and debt exists', async () => {
+      // Arrange
+      mockRepository.findDebtByDebtorName.mockResolvedValue(existingDebtTransaction);
+      mockRepository.accumulateDebt.mockResolvedValue(accumulatedDebtTransaction);
+
+      // Act
+      const result = await service.create(debtPayload, { upsert: true });
+
+      // Assert
+      expect(mockRepository.findDebtByDebtorName).toHaveBeenCalledWith('John Doe');
+      expect(mockRepository.accumulateDebt).toHaveBeenCalledWith(
+        'existing-debt-id',
+        150000, // 100000 + 50000
+        debtPayload
+      );
+      expect(mockRepository.create).not.toHaveBeenCalled();
+      expect(result.nominal).toBe(150000);
+    });
+
+    it('should create new debt when upsert=true but no existing debt', async () => {
+      // Arrange
+      mockRepository.findDebtByDebtorName.mockResolvedValue(null);
+      const newDebtTransaction: Transaction = {
+        id: 'new-debt-id',
+        nominal: 50000,
+        debtor_name: 'John Doe',
+        invoice_url: null,
+        invoice_data: null,
+        note: 'Initial debt',
+        type: 'debts',
+        created_at: '2025-12-06T10:00:00.000Z',
+        updated_at: '2025-12-06T10:00:00.000Z',
+      };
+      mockRepository.create.mockResolvedValue(newDebtTransaction);
+
+      // Act
+      const result = await service.create(debtPayload, { upsert: true });
+
+      // Assert
+      expect(mockRepository.findDebtByDebtorName).toHaveBeenCalledWith('John Doe');
+      expect(mockRepository.accumulateDebt).not.toHaveBeenCalled();
+      expect(mockRepository.create).toHaveBeenCalledWith(debtPayload);
+      expect(result.nominal).toBe(50000);
+    });
+
+    it('should create new transaction when upsert=false (default)', async () => {
+      // Arrange
+      const newDebtTransaction: Transaction = {
+        id: 'new-debt-id',
+        nominal: 50000,
+        debtor_name: 'John Doe',
+        invoice_url: null,
+        invoice_data: null,
+        note: 'Initial debt',
+        type: 'debts',
+        created_at: '2025-12-06T10:00:00.000Z',
+        updated_at: '2025-12-06T10:00:00.000Z',
+      };
+      mockRepository.create.mockResolvedValue(newDebtTransaction);
+
+      // Act
+      const result = await service.create(debtPayload); // no options = upsert defaults to false
+
+      // Assert
+      expect(mockRepository.findDebtByDebtorName).not.toHaveBeenCalled();
+      expect(mockRepository.accumulateDebt).not.toHaveBeenCalled();
+      expect(mockRepository.create).toHaveBeenCalledWith(debtPayload);
+      expect(result.nominal).toBe(50000);
+    });
+
+    it('should not upsert for non-debt transaction types', async () => {
+      // Arrange
+      const earningPayload: CreateTransactionDTO = {
+        nominal: 100000,
+        type: 'earning',
+        note: 'Salary',
+      };
+      const newEarningTransaction: Transaction = {
+        id: 'earning-id',
+        nominal: 100000,
+        debtor_name: null,
+        invoice_url: null,
+        invoice_data: null,
+        note: 'Salary',
+        type: 'earning',
+        created_at: '2025-12-06T10:00:00.000Z',
+        updated_at: '2025-12-06T10:00:00.000Z',
+      };
+      mockRepository.create.mockResolvedValue(newEarningTransaction);
+
+      // Act
+      const result = await service.create(earningPayload, { upsert: true });
+
+      // Assert
+      expect(mockRepository.findDebtByDebtorName).not.toHaveBeenCalled();
+      expect(mockRepository.create).toHaveBeenCalledWith(earningPayload);
+      expect(result.nominal).toBe(100000);
+    });
+
+    it('should update optional fields when upserting', async () => {
+      // Arrange
+      const payloadWithUpdates: CreateTransactionDTO = {
+        nominal: 25000,
+        type: 'debts',
+        debtor_name: 'John Doe',
+        note: 'Updated note',
+        invoice_url: 'https://example.com/invoice.pdf',
+        invoice_data: { item: 'Laptop' },
+      };
+
+      const updatedTransaction: Transaction = {
+        id: 'existing-debt-id',
+        nominal: 125000,
+        debtor_name: 'John Doe',
+        invoice_url: 'https://example.com/invoice.pdf',
+        invoice_data: { item: 'Laptop' },
+        note: 'Updated note',
+        type: 'debts',
+        created_at: '2025-12-01T10:00:00.000Z',
+        updated_at: '2025-12-06T10:00:00.000Z',
+      };
+
+      mockRepository.findDebtByDebtorName.mockResolvedValue(existingDebtTransaction);
+      mockRepository.accumulateDebt.mockResolvedValue(updatedTransaction);
+
+      // Act
+      const result = await service.create(payloadWithUpdates, { upsert: true });
+
+      // Assert
+      expect(mockRepository.accumulateDebt).toHaveBeenCalledWith(
+        'existing-debt-id',
+        125000, // 100000 + 25000
+        payloadWithUpdates
+      );
+      expect(result.note).toBe('Updated note');
+      expect(result.invoice_url).toBe('https://example.com/invoice.pdf');
+    });
+
+    it('should handle findDebtByDebtorName errors', async () => {
+      // Arrange
+      const repositoryError = new Error('Database connection failed');
+      mockRepository.findDebtByDebtorName.mockRejectedValue(repositoryError);
+
+      // Act & Assert
+      await expect(service.create(debtPayload, { upsert: true })).rejects.toThrow(repositoryError);
+    });
+
+    it('should handle accumulateDebt errors', async () => {
+      // Arrange
+      mockRepository.findDebtByDebtorName.mockResolvedValue(existingDebtTransaction);
+      const repositoryError = new Error('Failed to update');
+      mockRepository.accumulateDebt.mockRejectedValue(repositoryError);
+
+      // Act & Assert
+      await expect(service.create(debtPayload, { upsert: true })).rejects.toThrow(repositoryError);
     });
   });
 
