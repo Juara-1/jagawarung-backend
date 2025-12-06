@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { promptAgent } from '../controllers/agent.controller';
-
 const router = Router();
 
-router.post('/', promptAgent);
+router.post('/', (_req, res) => {
+  res.send('Test');
+});
 
 export default router;
