@@ -13,27 +13,36 @@ This is a Node.js/TypeScript REST API using Express and Supabase as the backend 
 ```
 src/
 ├── config/          # Environment and service configuration
-├── controllers/     # Request handlers with JSDoc for Swagger
-├── middleware/      # Auth, error handling, 404 handlers
-├── models/          # TypeScript interfaces and DTOs
-├── routes/          # Express route definitions
-├── tests/           # Separate unit and integration test setups
-└── utils/           # Helper functions (response formatting)
+├── controllers/     # Request handlers with JSDoc for Swagger (agent, transaction)
+├── middleware/      # Auth, error handling, validation, 404 handlers
+├── models/          # TypeScript interfaces and DTOs (transaction, user)
+├── repositories/    # Data access layer for database operations
+├── routes/          # Express route definitions (agent, transaction)
+├── services/        # Business logic layer (ai, mcp, transaction)
+├── tests/           # Unit and integration tests with separate folders
+├── types/           # Shared TypeScript type definitions
+├── utils/           # Helper functions (response formatting)
+└── validators/      # Input validation schemas using Zod
 ```
 
 ## Development Workflow
 
 ### Testing Commands
-- `npm test` - Runs all tests (currently only integration tests work)
-- `npm run test:unit` - Should run unit tests (needs fixing)
-- `npm run test:integration` - Runs integration tests
+- `npm test` - Runs all tests
+- `npm run test:watch` - Runs tests in watch mode
+- `npm run test:unit` - Runs unit tests only
+- `npm run test:integration` - Runs integration tests only
+- `npm run test:integration:watch` - Runs integration tests in watch mode
 - `npm run test:coverage` - Generate coverage report
+- `npm run test:integration:coverage` - Generate coverage for integration tests
 
 ### Test Configuration
-- Unit tests: `**/*.unit.test.ts` files
-- Integration tests: `**/*.integration.test.ts` files
+- Unit tests: `**/*.unit.test.ts` files (e.g., agent.controller.unit.test.ts)
+- Integration tests: `**/*.integration.test.ts` files (e.g., transaction.controller.integration.test.ts)
+- Test setup: Separate setup files in tests/ and tests/integration/ directories
+- Test mocks: Located in tests/mocks/ directory
 - Test database: Uses separate SUPABASE_TEST_* env vars if available
-- Test timeouts: 10s for unit, 30s for integration
+- Test timeouts: Configured in Jest setup files
 
 ### Development Server
 - `npm run dev` - Starts with nodemon and ts-node
