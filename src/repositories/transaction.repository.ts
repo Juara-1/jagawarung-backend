@@ -201,6 +201,7 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
       debtor_name: transaction.debtor_name,
       invoice_url: transaction.invoice_url,
       invoice_data: transaction.invoice_data,
+      type: transaction.type,
       note: transaction.note,
       created_at: transaction.created_at,
       updated_at: transaction.updated_at,

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { validate } from '../middleware/validate';
-import { agentDebtsRequestSchema } from '../validators/agent.schema';
+import { agentRequestSchema } from '../validators/agent.schema';
 import { processDebtPrompt } from '../controllers/agent.controller';
 
 const router = Router();
@@ -14,6 +14,6 @@ const router = Router();
  * @return {object} 200 - Processed debt prompt
  * @return {object} 400 - Validation error
  */
-router.post('/transactions', validate(agentDebtsRequestSchema, 'body'), processDebtPrompt);
+router.post('/transactions', validate(agentRequestSchema, 'body'), processDebtPrompt);
 
 export default router;

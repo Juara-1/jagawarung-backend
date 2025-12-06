@@ -65,6 +65,12 @@ export class AgentService {
       case 'repay_debt':
         actionResult = await this.handleRepayDebt(parsedIntent);
         break;
+      case 'insert_spending':
+        actionResult = await this.handleInsertSpending(parsedIntent);
+        break;
+      case 'insert_earning':
+        actionResult = await this.handleInsertEarning(parsedIntent);
+        break;
       default:
         throw new AppError(`Unknown action: ${parsedIntent.action}`, 400);
     }
@@ -138,5 +144,45 @@ export class AgentService {
       throw error;
     }
   }
+
+  /**
+   * Handle insert_spending action
+   * Creates a new spending transaction
+   */
+  private async handleInsertSpending(parsedIntent: ParsedDebtIntent): Promise<DebtActionResult> {
+      const payload: CreateTransactionDTO = {
+        type: 'spending',
+        nominal: parsedIntent.nominal,
+        note: parsedIntent.original_prompt,
+      };
+
+      const transaction = await this.transactionService.create(payload, { upsert: false });
+
+      return {
+        action: 'insert_spending',
+        transaction,
+        message: `Pengeluaran sebesar ${parsedIntent.nominal} berhasil dicatat`,
+      };
+  }
+
+  /**
+   * Handle insert_earning action
+   * Creates a new earning transaction
+   */
+  private async handleInsertEarning(parsedIntent: ParsedDebtIntent): Promise<DebtActionResult> {
+      const payload: CreateTransactionDTO = {
+        type: 'earning',
+        nominal: parsedIntent.nominal,
+        note: parsedIntent.original_prompt,
+      };
+
+      const transaction = await this.transactionService.create(payload, { upsert: false });
+
+      return {
+        action: 'insert_earning',
+        transaction,
+        message: `Pemasukan sebesar ${parsedIntent.nominal} berhasil dicatat`,
+      };
+    }
 }
 

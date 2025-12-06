@@ -21,7 +21,7 @@ export interface AgentDebtsRequest {
 /**
  * Possible actions the AI can identify from a debt-related prompt
  */
-export type DebtAction = 'repay_debt' | 'get_debt' | 'upsert_debt';
+export type DebtAction = 'repay_debt' | 'get_debt' | 'upsert_debt' | 'insert_spending' | 'insert_earning';
 
 /**
  * Structured output from AI parsing a debt-related prompt

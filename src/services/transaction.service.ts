@@ -179,6 +179,7 @@ export class TransactionService implements ITransactionService {
       invoice_url: transaction.invoice_url,
       invoice_data: transaction.invoice_data,
       note: transaction.note,
+      type: transaction.type,
       created_at: transaction.created_at,
       updated_at: transaction.updated_at,
     };

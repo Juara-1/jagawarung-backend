@@ -37,6 +37,7 @@ describe('AgentService', () => {
       debtor_name: 'Budi',
       invoice_url: null,
       invoice_data: null,
+      type: 'debts',
       note: 'Budi hutang 50000',
       created_at: '2025-12-06T10:00:00.000Z',
       updated_at: '2025-12-06T10:00:00.000Z',
@@ -137,6 +138,7 @@ describe('AgentService', () => {
       invoice_url: null,
       invoice_data: null,
       note: 'Previous debt',
+      type: 'debts',
       created_at: '2025-12-05T10:00:00.000Z',
       updated_at: '2025-12-05T10:00:00.000Z',
     };
@@ -239,6 +241,7 @@ describe('AgentService', () => {
       invoice_url: null,
       invoice_data: null,
       note: 'Pembayaran Hutang Budi',
+      type: 'spending',
       created_at: '2025-12-05T10:00:00.000Z',
       updated_at: '2025-12-06T10:00:00.000Z',
     };

@@ -24,6 +24,7 @@ export interface TransactionResponse {
   invoice_url: string | null;
   invoice_data: any | null;
   note: string | null;
+  type: TransactionType;
   created_at: string;
   updated_at: string;
 }
