@@ -13,7 +13,7 @@ import {
   SupabaseTransactionRepository,
 } from '../repositories/transaction.repository';
 
-export interface ValidatedListQuery {
+export interface ListTransactionsOptions {
   page: number;
   per_page: number;
   order_by: 'created_at' | 'updated_at' | 'nominal';
@@ -29,7 +29,7 @@ export interface CreateTransactionOptions {
 }
 
 export interface ITransactionService {
-  list(query: ValidatedListQuery): Promise<PaginatedTransactionsResponse>;
+  list(query: ListTransactionsOptions): Promise<PaginatedTransactionsResponse>;
   create(payload: CreateTransactionDTO, options?: CreateTransactionOptions): Promise<TransactionResponse>;
   delete(id: string): Promise<TransactionResponse>;
   update(id: string, payload: UpdateTransactionDTO): Promise<TransactionResponse>;
@@ -44,7 +44,7 @@ export class TransactionService implements ITransactionService {
     return new TransactionService(new SupabaseTransactionRepository());
   }
 
-  async list(query: ValidatedListQuery): Promise<PaginatedTransactionsResponse> {
+  async list(query: ListTransactionsOptions): Promise<PaginatedTransactionsResponse> {
     const filters: TransactionFilterOptions = {
       page: query.page,
       perPage: query.per_page,

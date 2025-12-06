@@ -1,4 +1,4 @@
-import { TransactionService, ValidatedListQuery } from '../services/transaction.service';
+import { TransactionService, ListTransactionsOptions } from '../services/transaction.service';
 import {
   CreateTransactionDTO,
   PaginatedTransactionsResponse,
@@ -20,7 +20,7 @@ const mockRepository = {
 };
 
 // Default validated query for list tests
-const defaultListQuery: ValidatedListQuery = {
+const defaultListQuery: ListTransactionsOptions = {
   page: 1,
   per_page: 10,
   order_by: 'created_at',

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendPaginatedSuccess } from '../utils/response';
 import { AppError } from '../middleware/errorHandler';
-import { TransactionService, ValidatedListQuery, CreateTransactionOptions } from '../services/transaction.service';
+import { TransactionService, ListTransactionsOptions, CreateTransactionOptions } from '../services/transaction.service';
 import {
   CreateTransactionDTO,
   UpdateTransactionDTO,
@@ -43,7 +43,7 @@ export const getTransactions = async (
 ) => {
   try {
     // req.query is already validated and transformed by the validate middleware
-    const queryParams = req.query as unknown as ValidatedListQuery;
+    const queryParams = req.query as unknown as ListTransactionsOptions;
     const { transactions, pagination } = await transactionService.list(queryParams);
     sendPaginatedSuccess(res, transactions, pagination, 'Transactions retrieved successfully');
   } catch (error) {
