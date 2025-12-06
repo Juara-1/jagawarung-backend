@@ -153,3 +153,7 @@ export const transactionCreateQuerySchema = z.object({
     .default('false')
     .transform((val) => val === 'true'),
 });
+
+export const transactionRepaySchema = z.object({
+  // No body needed for debt repayment, just the transaction ID in the path
+});

@@ -33,6 +33,7 @@ export interface ITransactionService {
   create(payload: CreateTransactionDTO, options?: CreateTransactionOptions): Promise<TransactionResponse>;
   delete(id: string): Promise<TransactionResponse>;
   update(id: string, payload: UpdateTransactionDTO): Promise<TransactionResponse>;
+  repayDebt(id: string): Promise<TransactionResponse>;
   getSummary(timeRange: 'day' | 'week' | 'month'): Promise<TransactionSummary>;
 }
 
@@ -92,6 +93,33 @@ export class TransactionService implements ITransactionService {
   async update(id: string, payload: UpdateTransactionDTO): Promise<TransactionResponse> {
     const transaction = await this.repository.updateById(id, payload);
     return this.toResponse(transaction);
+  }
+
+  async repayDebt(id: string): Promise<TransactionResponse> {
+    // First, get the transaction to verify it exists and is a debt
+    const existingTransaction = await this.repository.findById(id);
+    
+    if (!existingTransaction) {
+      throw new Error('Transaction not found');
+    }
+    
+    if (existingTransaction.type !== 'debts') {
+      throw new Error('Transaction is not a debt');
+    }
+    
+    if (!existingTransaction.debtor_name) {
+      throw new Error('Debt transaction has no debtor name');
+    }
+    
+    // Update the transaction to mark it as repaid
+    const updatePayload: UpdateTransactionDTO = {
+      type: 'earning',
+      debtor_name: null,
+      note: `Pembayaran Hutang ${existingTransaction.debtor_name}`,
+    };
+    
+    const updatedTransaction = await this.repository.updateById(id, updatePayload);
+    return this.toResponse(updatedTransaction);
   }
 
   async getSummary(timeRange: 'day' | 'week' | 'month'): Promise<TransactionSummary> {

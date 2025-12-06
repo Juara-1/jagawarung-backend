@@ -11,6 +11,7 @@ import {
 const mockRepository = {
   create: jest.fn(),
   deleteById: jest.fn(),
+  findById: jest.fn(),
   updateById: jest.fn(),
   getSummaryByRange: jest.fn(),
   listPaginated: jest.fn(),
@@ -825,6 +826,120 @@ describe('TransactionService', () => {
 
       // Act & Assert
       await expect(service.getSummary('day')).rejects.toThrow(repositoryError);
+    });
+  });
+
+  describe('repayDebt', () => {
+    const mockDebtTransaction: Transaction = {
+      id: 'debt-1',
+      nominal: 100000,
+      debtor_name: 'John Doe',
+      invoice_url: null,
+      invoice_data: null,
+      note: 'Initial debt',
+      type: 'debts',
+      created_at: '2025-12-01T10:00:00.000Z',
+      updated_at: '2025-12-01T10:00:00.000Z',
+    };
+
+    const mockUpdatedTransaction: Transaction = {
+      ...mockDebtTransaction,
+      type: 'earning',
+      debtor_name: null,
+      note: 'Pembayaran Hutang John Doe',
+      updated_at: '2025-12-06T10:00:00.000Z',
+    };
+
+    it('should successfully mark a debt as repaid', async () => {
+      // Arrange
+      mockRepository.findById.mockResolvedValue(mockDebtTransaction);
+      mockRepository.updateById.mockResolvedValue(mockUpdatedTransaction);
+
+      // Act
+      const result = await service.repayDebt('debt-1');
+
+      // Assert
+      expect(mockRepository.findById).toHaveBeenCalledWith('debt-1');
+      expect(mockRepository.updateById).toHaveBeenCalledWith('debt-1', {
+        type: 'earning',
+        debtor_name: null,
+        note: 'Pembayaran Hutang John Doe',
+      });
+      expect(result).toEqual({
+        id: 'debt-1',
+        nominal: 100000,
+        debtor_name: null,
+        invoice_url: null,
+        invoice_data: null,
+        note: 'Pembayaran Hutang John Doe',
+        created_at: '2025-12-01T10:00:00.000Z',
+        updated_at: '2025-12-06T10:00:00.000Z',
+      });
+    });
+
+    it('should throw error if transaction is not found', async () => {
+      // Arrange
+      mockRepository.findById.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.repayDebt('non-existent-id')).rejects.toThrow('Transaction not found');
+      expect(mockRepository.findById).toHaveBeenCalledWith('non-existent-id');
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should throw error if transaction is not a debt', async () => {
+      // Arrange
+      const nonDebtTransaction: Transaction = {
+        ...mockDebtTransaction,
+        type: 'spending',
+      };
+      mockRepository.findById.mockResolvedValue(nonDebtTransaction);
+
+      // Act & Assert
+      await expect(service.repayDebt('non-debt-id')).rejects.toThrow('Transaction is not a debt');
+      expect(mockRepository.findById).toHaveBeenCalledWith('non-debt-id');
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should throw error if debt transaction has no debtor name', async () => {
+      // Arrange
+      const debtWithoutDebtor: Transaction = {
+        ...mockDebtTransaction,
+        debtor_name: null,
+      };
+      mockRepository.findById.mockResolvedValue(debtWithoutDebtor);
+
+      // Act & Assert
+      await expect(service.repayDebt('no-debtor-id')).rejects.toThrow('Debt transaction has no debtor name');
+      expect(mockRepository.findById).toHaveBeenCalledWith('no-debtor-id');
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should handle repository errors during findById', async () => {
+      // Arrange
+      const repositoryError = new Error('Database connection failed');
+      mockRepository.findById.mockRejectedValue(repositoryError);
+
+      // Act & Assert
+      await expect(service.repayDebt('debt-1')).rejects.toThrow(repositoryError);
+      expect(mockRepository.findById).toHaveBeenCalledWith('debt-1');
+      expect(mockRepository.updateById).not.toHaveBeenCalled();
+    });
+
+    it('should handle repository errors during updateById', async () => {
+      // Arrange
+      const repositoryError = new Error('Update failed');
+      mockRepository.findById.mockResolvedValue(mockDebtTransaction);
+      mockRepository.updateById.mockRejectedValue(repositoryError);
+
+      // Act & Assert
+      await expect(service.repayDebt('debt-1')).rejects.toThrow(repositoryError);
+      expect(mockRepository.findById).toHaveBeenCalledWith('debt-1');
+      expect(mockRepository.updateById).toHaveBeenCalledWith('debt-1', {
+        type: 'earning',
+        debtor_name: null,
+        note: 'Pembayaran Hutang John Doe',
+      });
     });
   });
 });

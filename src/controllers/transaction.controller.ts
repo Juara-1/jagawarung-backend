@@ -173,3 +173,32 @@ export const getTransactionSummary = async (
     next(error);
   }
 };
+
+/**
+ * POST /api/transactions/{id}/repay
+ * @summary Mark a debt transaction as repaid
+ * @tags Transactions
+ * @param {string} id.path.required - Transaction ID
+ * @return {TransactionResponse} 200 - Debt marked as repaid successfully
+ * @return {object} 400 - Transaction is not a debt
+ * @return {object} 404 - Transaction not found
+ */
+export const repayDebt = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      throw new AppError('Transaction id is required', 400);
+    }
+
+    const response = await transactionService.repayDebt(id);
+
+    sendSuccess(res, response, 'Debt marked as repaid successfully');
+  } catch (error) {
+    next(error);
+  }
+};

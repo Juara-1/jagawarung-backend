@@ -8,6 +8,7 @@ import {
   transactionIdParamSchema,
   transactionListQuerySchema,
   transactionSummaryQuerySchema,
+  transactionRepaySchema,
 } from '../validators/transaction.schema';
 
 const router = Router();
@@ -26,5 +27,8 @@ router.put('/:id', validate(transactionIdParamSchema, 'params'), validate(transa
 
 // Delete transaction by id
 router.delete('/:id', validate(transactionIdParamSchema, 'params'), transactionController.deleteTransactionById);
+
+// Repay debt
+router.post('/:id/repay', validate(transactionIdParamSchema, 'params'), validate(transactionRepaySchema), transactionController.repayDebt);
 
 export default router;

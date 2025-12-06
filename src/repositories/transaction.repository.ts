@@ -14,6 +14,7 @@ import {
 export interface ITransactionRepository {
   create(payload: CreateTransactionDTO): Promise<Transaction>;
   deleteById(id: string): Promise<Transaction>;
+  findById(id: string): Promise<Transaction | null>;
   updateById(id: string, payload: UpdateTransactionDTO): Promise<Transaction>;
   getSummaryByRange(startDate: string, endDate: string): Promise<Array<{ type: TransactionType; nominal: number }>>;
   listPaginated(filters: TransactionFilterOptions): Promise<PaginatedTransactionsResponse>;
@@ -78,6 +79,20 @@ export class SupabaseTransactionRepository implements ITransactionRepository {
     }
 
     return data as Transaction;
+  }
+
+  async findById(id: string): Promise<Transaction | null> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError(`Failed to find transaction: ${error.message}`, 500);
+    }
+
+    return data as Transaction | null;
   }
 
   async updateById(id: string, payload: UpdateTransactionDTO): Promise<Transaction> {
