@@ -41,9 +41,7 @@ export interface ParsedDebtIntent {
 // AI Service Types
 // ============================================================================
 
-/**
- * Options for AI completion requests
- */
+// Options for AI completion requests
 export interface AICompletionOptions {
   /** System prompt to guide the AI */
   systemPrompt: string;

@@ -107,9 +107,7 @@ export class AIService {
 // Singleton instance for convenience
 let aiServiceInstance: AIService | null = null;
 
-/**
- * Get or create the AI service singleton
- */
+// Get or create the AI service singleton
 export const getAIService = (): AIService => {
   if (!aiServiceInstance) {
     aiServiceInstance = new AIService();
