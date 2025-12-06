@@ -13,7 +13,8 @@
     "test:unit": "jest --testPathPatterns=unit",
     "test:integration": "jest --testPathPatterns=integration",
     "test:integration:watch": "jest --testPathPatterns=integration --watch",
-    "test:integration:coverage": "jest --testPathPatterns=integration --coverage"
+    "test:integration:coverage": "jest --testPathPatterns=integration --coverage",
+    "prepare": "husky"
   },
   "keywords": [
     "nodejs",
@@ -40,6 +41,7 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/supertest": "^6.0.3",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
     "nodemon": "^3.0.2",
     "supertest": "^7.1.4",
