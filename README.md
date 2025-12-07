@@ -166,6 +166,10 @@ The server will start on `http://localhost:3000`
 
 Visit `http://localhost:3000/health` to check if the server is running.
 
+## Coverage Reporting
+<img width="1919" height="729" alt="image" src="https://github.com/user-attachments/assets/dd4c00ae-1d91-42fe-9764-a0b2e24ed7f1" />
+
+
 ## 📝 Available Scripts
 
 - `npm run dev` - Start development server with hot reload
