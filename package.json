@@ -20,7 +20,7 @@
     "test:integration": "jest --testPathPatterns=integration",
     "test:integration:watch": "jest --testPathPatterns=integration --watch",
     "test:integration:coverage": "jest --testPathPatterns=integration --coverage",
-    "prepare": "husky"
+    "prepare": "node -e \"try { require.resolve('husky') } catch (e) { process.exit(0) }; require('child_process').execSync('husky', { stdio: 'inherit' })\""
   },
   "keywords": [
     "nodejs",
