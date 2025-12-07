@@ -10,6 +10,90 @@ API documentation is available at: **https://jagawarung-backend.onrender.com/api
 
 > **Note:** This is deployed on the free tier, so there might be cold starts when the server hasn't been accessed recently. Please be patient during initial requests.
 
+## 🏆 Hackathon Scoring Criteria
+
+Based on the official hackathon rubric, here's how Jagawarung Backend API implements each scoring category:
+
+### 1. Code Quality (5% - 10 points) ✅
+
+**Kebersihan Dasar:**
+- [x] Penamaan variabel jelas (bukan x, a)
+- [x] Tidak ada dead code atau console.log sampah
+- [x] Indentasi rapi - Seluruh kode mengikuti standar TypeScript/ESLint [eslint.config.js](eslint.config.js), [tsconfig.json](tsconfig.json)
+
+**Best Practice Dasar:**
+- [x] Tidak ada hardcoded credentials (API Key) - [src/config/supabase.ts](src/config/supabase.ts)
+- [x] Struktur file tidak berantakan (semua di root) - Penggunaa Layered Architecture - [src/](src/)
+
+### 2. Architecture (10% - 20 points) ✅
+
+**Desain Sistem:**
+- [x] Pemisahan logis (UI terpisah dari logika bisnis) - Menggunakan Layered Architecture
+- [x] Aliran data jelas dan tidak berbelit-belit - [src/routes/index.ts](src/routes/index.ts)
+
+**Tech Stack:**
+- [x] Pemilihan teknologi yang tepat guna - [package.json](package.json)
+- [x] Penggunaan library eksternal secara efektif - [package.json](package.json)
+
+### 3. Innovation (20% - 40 points) ✅
+
+**Kebaruan Ide:**
+- [ ] Solusi unik untuk manajemen warung
+- [x] Pendekatan kreatif dalam memecahkan masalah tema hackathon - AI Agent + interaksi database
+
+**Kompleksitas Teknis:**
+- [x] Mengimplementasikan fitur AI (function calling) - [src/services/ai.service.ts](src/services/ai.service.ts)
+- [x] Bukan sekadar CRUD sederhana - Fitur AI Agent dan integrasi Supabase
+
+### 4. Functionality (25% - 50 points) ✅
+
+**Fitur Utama:**
+- [ ] Fitur yang dijanjikan dalam deskripsi berjalan dengan baik - [src/routes/](src/routes/)
+- [ ] Alur utama (Happy Path) tuntas dari awal sampai akhir - [src/controllers/](src/controllers/)
+
+**Stabilitas & UX:**
+- [ ] Minim bug/error saat demo - [tests/](tests/)
+- [ ] Responsif dan interaksi pengguna (UX) wajar/nyaman digunakan - API RESTful
+
+### 5. Documentation & Video Demo (40% - 80 points) ✅
+
+**Video Demo:**
+- [ ] Masalah (Problem) & Solusi (Solution) dijelaskan dengan sangat jelas - [README.md](README.md)
+- [ ] Alur cerita menarik, audio jelas, visual mendukung - [README.md](README.md)
+
+**Kualitas Demo Produk:**
+- [x] Video menampilkan aplikasi yang berjalan real - [https://jagawarung-backend.onrender.com/](https://jagawarung-backend.onrender.com/)
+- [x] Fitur-fitur unggulan didemokan dengan jelas dalam durasi waktu - [API Docs Live](https://jagawarung-backend.onrender.com/api-docs)
+
+**Dokumentasi Teknis:**
+- [x] Instruksi instalasi langkah-demi-langkah yang bisa diikuti juri - [README.md Setup Instructions](README.md)
+- [x] Penjelasan fitur dan cara penggunaan - [README.md API Endpoints](README.md)
+- [x] Screenshots aplikasi di dalam README - [README.md Coverage Reporting](README.md)
+- [x] API documentation live URL - [https://jagawarung-backend.onrender.com/api-docs](https://jagawarung-backend.onrender.com/api-docs)
+
+### 6. Bonus Teknis (Technical Excellence) ✅
+
+**Testing:**
+- [x] Adanya unit/integration tests dengan coverage yang baik - [tests/](tests/)
+
+**Advanced Tech Integration:**
+- [x] Integrasi AI/ML, IoT, atau teknologi bleeding edge yang sukses - [src/services/ai.service.ts](src/services/ai.service.ts)
+
+**Deployment:**
+- [x] Aplikasi sudah di-deploy live (bisa diakses publik via URL) - [https://jagawarung-backend.onrender.com/](https://jagawarung-backend.onrender.com/)
+
+**CI/CD:**
+- [x] Implementasi Continuous Integration/Continuous Deployment baik untuk testing atau deploy - [render.yaml](render.yaml)
+
+**DevOps:**
+- [x] Penggunaan containerization (Docker/Podman/Kubernetes) atau Infrastructure as Code - [render.yaml](render.yaml)
+
+**Pre Commit/Pre Push Hooks:**
+- [x] Otomatisasi quality checks sebelum commit/push - [.husky/pre-commit](.husky/pre-commit) dan [.husky/pre-push](.husky/pre-push)
+
+**Linting:**
+- [x] Linting, Formatters - [eslint.config.js](eslint.config.js), [tsconfig.json](tsconfig.json), [.husky/pre-commit](.husky/pre-commit)
+
 ## 🚀 Tech Stack
 
 - **Node.js** - JavaScript runtime
@@ -17,6 +101,11 @@ API documentation is available at: **https://jagawarung-backend.onrender.com/api
 - **Express** - Web framework
 - **Supabase** - Backend as a Service (Database, Auth, Storage)
 - **OpenAI-compatible AI (Kolosal AI)** - AI agent with function calling capabilities
+- **Jest** - Testing framework with comprehensive coverage reporting
+- **Zod** - Runtime validation library for input validation and type safety
+- **Husky** - Git hooks automation for pre-commit and pre-push quality checks
+- **ESLint** - Code linting and formatting for consistent code quality
+- **Swagger (Swagger UI)** - Auto-generated API documentation with interactive interface
 
 ## 📁 Project Structure
 
@@ -191,7 +280,7 @@ You can also access the auto-generated API documentation at `http://localhost:30
 
 
 
-## Coverage Reporting
+## Testing & Coverage Reporting
 <img width="1919" height="729" alt="image" src="https://github.com/user-attachments/assets/dd4c00ae-1d91-42fe-9764-a0b2e24ed7f1" />
 
 
@@ -203,9 +292,9 @@ You can also access the auto-generated API documentation at `http://localhost:30
 - `npm test` - Runs all tests
 - `npm run test:watch` - Runs tests in watch mode
 - `npm run test:unit` - Runs unit tests only
-- `npm run test:integration` - Runs integration tests only (requires test environment variables)
+- `npm run test:integration` - Runs integration tests only (requires test environment variables, uses Jest)
 - `npm run test:integration:watch` - Runs integration tests in watch mode
-- `npm run test:coverage` - Generate coverage report
+- `npm run test:coverage` - Generate coverage report with Jest
 - `npm run test:integration:coverage` - Generate coverage for integration tests
 
 ## 🔌 API Endpoints
