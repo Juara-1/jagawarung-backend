@@ -69,15 +69,24 @@ export const createTestUser = async (client: SupabaseClient, userData: any = {})
 };
 
 /**
- * Setup a complete test environment with database
+ * Setup a complete test environment with database and authenticated user
  * This is a one-stop function for setting up integration tests
  */
 export const setupIntegrationTest = async () => {
   // Setup test database
   const client = await setupTestDb();
 
+  // Create a test user and get auth token
+  const { user, token } = await createTestUser(client);
+
+  // Create authenticated request helpers
+  const authRequest = createAuthenticatedRequest(token);
+
   return {
-    client
+    client,
+    user,
+    token,
+    authRequest
   };
 };
 

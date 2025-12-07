@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as transactionController from '../controllers/transaction.controller';
+import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import {
   transactionCreateSchema,
@@ -12,6 +13,9 @@ import {
 } from '../validators/transaction.schema';
 
 const router = Router();
+
+// Apply authentication to all transaction routes
+router.use(authenticate);
 
 // Get paginated transactions - validate query params
 router.get('/', validate(transactionListQuerySchema, 'query'), transactionController.getTransactions);

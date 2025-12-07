@@ -25,6 +25,7 @@ import {
  * GET /api/transactions
  * @summary Get paginated transactions
  * @tags Transactions
+ * @security BearerAuth
  * @param {number} page.query - Page number (default: 1)
  * @param {number} per_page.query - Items per page (default: 10, max: 100)
  * @param {string} note.query - Case-insensitive search on transaction note
@@ -35,6 +36,7 @@ import {
  * @param {string} order_direction.query - Sort direction (asc or desc)
  * @return {PaginatedTransactionsResponse} 200 - Transactions retrieved successfully
  * @return {object} 400 - Bad request
+ * @return {object} 401 - Unauthorized
  */
 export const getTransactions = async (
   req: Request,
@@ -66,10 +68,12 @@ export const getTransactions = async (
  * POST /api/transactions
  * @summary Create a new transaction record
  * @tags Transactions
+ * @security BearerAuth
  * @param {boolean} upsert.query - When true and type is 'debts', accumulates nominal for existing debtor_name
  * @param {CreateTransactionRequest} request.body.required - Transaction payload
  * @return {TransactionResponse} 201 - Transaction created successfully
  * @return {object} 400 - Validation error
+ * @return {object} 401 - Unauthorized
  */
 const transactionService = TransactionService.withSupabase();
 
@@ -96,8 +100,10 @@ export const createTransaction = async (
  * DELETE /api/transactions/{id}
  * @summary Delete a transaction by ID
  * @tags Transactions
+ * @security BearerAuth
  * @param {string} id.path.required - Transaction ID
  * @return {object} 200 - Transaction deleted successfully
+ * @return {object} 401 - Unauthorized
  * @return {object} 404 - Transaction not found
  */
 export const deleteTransactionById = async (
@@ -124,9 +130,11 @@ export const deleteTransactionById = async (
  * PUT /api/transactions/{id}
  * @summary Update a transaction by ID
  * @tags Transactions
+ * @security BearerAuth
  * @param {string} id.path.required - Transaction ID
  * @param {CreateTransactionRequest} request.body.required - Updated transaction payload
  * @return {TransactionResponse} 200 - Transaction updated successfully
+ * @return {object} 401 - Unauthorized
  * @return {object} 404 - Transaction not found
  */
 export const updateTransactionById = async (
@@ -154,8 +162,10 @@ export const updateTransactionById = async (
  * GET /api/transactions/summary
  * @summary Get aggregated transaction totals by type
  * @tags Transactions
+ * @security BearerAuth
  * @param {string} time_range.query - Time range filter (day, week, month). Required.
  * @return {object} 200 - Summary retrieved successfully
+ * @return {object} 401 - Unauthorized
  */
 export const getTransactionSummary = async (
   req: Request,
@@ -178,9 +188,11 @@ export const getTransactionSummary = async (
  * POST /api/transactions/{id}/repay
  * @summary Mark a debt transaction as repaid
  * @tags Transactions
+ * @security BearerAuth
  * @param {string} id.path.required - Transaction ID
  * @return {TransactionResponse} 200 - Debt marked as repaid successfully
  * @return {object} 400 - Transaction is not a debt
+ * @return {object} 401 - Unauthorized
  * @return {object} 404 - Transaction not found
  */
 export const repayDebt = async (

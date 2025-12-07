@@ -12,7 +12,31 @@ const swaggerOptions = {
   info: {
     version: '1.0.0',
     title: 'Jagawarung API',
-    description: 'Backend API for Jagawarung using Node.js, TypeScript, Express, and Supabase',
+    description: `Backend API for Jagawarung using Node.js, TypeScript, Express, and Supabase.
+
+## 🔐 Authentication
+
+Some endpoints require authentication. Follow these steps to test protected endpoints:
+
+### Step 1: Login to get a token
+Call \`POST /api/auth/login\` with the test credentials:
+\`\`\`json
+{
+  "email": "jagawarung@gmail.com",
+  "password": "12345678"
+}
+\`\`\`
+
+### Step 2: Authorize in Swagger
+1. Copy the \`access_token\` from the login response
+2. Click the **Authorize** button (🔓) below
+3. Enter the token in the format: \`<your_access_token>\`
+4. Click **Authorize**
+
+Now you can call protected endpoints like \`POST /api/agent/transactions\`.
+
+> **Note:** Tokens expire after 1 hour. If you get a 401 error, login again to get a new token.
+`,
     license: {
       name: 'ISC',
     },
