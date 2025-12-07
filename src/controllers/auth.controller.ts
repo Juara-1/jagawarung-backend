@@ -5,8 +5,15 @@ import { AppError } from '../middleware/errorHandler';
 import { LoginRequest } from '../validators/auth.schema';
 
 /**
- * Login response type
- * @typedef {object} LoginResponse
+ * Login request body
+ * @typedef {object} LoginRequest
+ * @property {string} email.required - User email address
+ * @property {string} password.required - User password
+ */
+
+/**
+ * Login response data
+ * @typedef {object} LoginResponseData
  * @property {string} access_token - JWT access token for API authentication
  * @property {string} refresh_token - Token to refresh the access token
  * @property {number} expires_in - Token expiration time in seconds
@@ -15,15 +22,28 @@ import { LoginRequest } from '../validators/auth.schema';
  */
 
 /**
+ * Login response wrapper
+ * @typedef {object} LoginResponse
+ * @property {boolean} success - Whether the request was successful
+ * @property {string} message - Response message
+ * @property {LoginResponseData} data - Login response data
+ */
+
+/**
+ * Error response
+ * @typedef {object} ErrorResponse
+ * @property {boolean} success - Always false for error responses - false
+ * @property {string} message - Error message describing what went wrong
+ */
+
+/**
  * POST /api/auth/login
  * @summary Login with email and password to get JWT token
  * @tags Auth
- * @param {object} request.body.required - Login credentials
- * @param {string} request.body.email.required - User email address
- * @param {string} request.body.password.required - User password
+ * @param {LoginRequest} request.body.required - Login credentials
  * @return {LoginResponse} 200 - Login successful
- * @return {object} 401 - Invalid credentials
- * @return {object} 400 - Validation error
+ * @return {ErrorResponse} 400 - Validation error
+ * @return {ErrorResponse} 401 - Invalid credentials
  */
 export const login = async (
   req: Request,
