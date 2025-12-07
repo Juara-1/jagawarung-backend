@@ -106,9 +106,22 @@ Configure AI provider credentials (Kolosal AI - OpenAI-compatible):
 - `AI_MODEL`: Default model (e.g., `gpt-4o-mini`)
 - `AI_REQUEST_TIMEOUT_MS`: Optional timeout in ms (default: 30000)
 
-### 3. Create Supabase Tables
+### 3. Configure Testing Environment Variables
 
-Run this SQL in your Supabase SQL Editor:
+For running integration tests safely without affecting production data, configure the test-specific environment variables:
+
+- `SUPABASE_TEST_URL`: Your Supabase test project URL
+- `SUPABASE_TEST_ANON_KEY`: Your Supabase test anonymous key
+- `SUPABASE_TEST_SERVICE_ROLE_KEY`: Your Supabase test service role key
+
+> **Note:** These variables are used by the test suite to connect to a separate Supabase test project, ensuring that integration tests run in isolation and don't interfere with your production database. This is essential for maintaining data integrity during development and CI/CD processes.
+
+### 4. Create Supabase Tables
+
+Run this SQL in your Supabase SQL Editor.:
+
+> **Note:** Also run this in your test database if you have configured `SUPABASE_TEST_URL`, `SUPABASE_TEST_ANON_KEY`, and `SUPABASE_TEST_SERVICE_ROLE_KEY`.
+
 
 ```sql
 -- Create transactions table
@@ -154,7 +167,7 @@ CREATE INDEX idx_transactions_debtor_name ON transactions(debtor_name) WHERE deb
 --   USING (auth.uid() IS NOT NULL);
 ```
 
-### 4. Run the Development Server
+### 5. Run the Development Server
 
 ```bash
 npm run dev
@@ -162,9 +175,13 @@ npm run dev
 
 The server will start on `http://localhost:3000`
 
-### 5. Test the API
+### 6. Test the API
 
 Visit `http://localhost:3000/health` to check if the server is running.
+
+You can also access the auto-generated API documentation at `http://localhost:3000/api-docs` to explore all available endpoints with detailed descriptions and examples.
+
+
 
 ## Coverage Reporting
 <img width="1919" height="729" alt="image" src="https://github.com/user-attachments/assets/dd4c00ae-1d91-42fe-9764-a0b2e24ed7f1" />
@@ -178,7 +195,7 @@ Visit `http://localhost:3000/health` to check if the server is running.
 - `npm test` - Runs all tests
 - `npm run test:watch` - Runs tests in watch mode
 - `npm run test:unit` - Runs unit tests only
-- `npm run test:integration` - Runs integration tests only
+- `npm run test:integration` - Runs integration tests only (**requires test environment variables**)
 - `npm run test:integration:watch` - Runs integration tests in watch mode
 - `npm run test:coverage` - Generate coverage report
 - `npm run test:integration:coverage` - Generate coverage for integration tests
