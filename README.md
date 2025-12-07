@@ -23,6 +23,8 @@ The Backend API is deployed and can be accessed at: **https://jagawarung-backend
 
 API documentation is available at: **https://jagawarung-backend.onrender.com/api-docs**
 
+The Test coverage report is available at: **https://juara-1.github.io/jagawarung-backend/**
+
 > **Note:** This is deployed on the free tier, so there might be cold starts when the server hasn't been accessed recently. Please be patient during initial requests.
 
 ## 🏆 Hackathon Scoring Criteria
@@ -336,6 +338,8 @@ The coverage report provides detailed insights into:
 - **Lines**: Line-by-line coverage analysis
 
 Current coverage: **Very Good%** ✅
+
+**Live Coverage Report:** [https://juara-1.github.io/jagawarung-backend/](https://juara-1.github.io/jagawarung-backend/)
 
 <img width="1919" height="729" alt="image" src="https://github.com/user-attachments/assets/dd4c00ae-1d91-42fe-9764-a0b2e24ed7f1" />
 
