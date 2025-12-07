@@ -2,7 +2,6 @@
   "name": "jagawarung-backend",
   "version": "1.0.0",
   "description": "Backend API for Jagawarung using Node.js, TypeScript, Express, and Supabase",
-  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node --transpile-only src/index.ts",
