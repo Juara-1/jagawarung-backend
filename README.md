@@ -2,6 +2,14 @@
 
 Backend API for Jagawarung built with Node.js, TypeScript, Express, and Supabase.
 
+## 🌐 Live API
+
+The Backend API is deployed and can be accessed at: **https://jagawarung-backend.onrender.com/**
+
+API documentation is available at: **https://jagawarung-backend.onrender.com/api-docs**
+
+> **Note:** This is deployed on the free tier, so there might be cold starts when the server hasn't been accessed recently. Please be patient during initial requests.
+
 ## 🚀 Tech Stack
 
 - **Node.js** - JavaScript runtime
@@ -195,7 +203,7 @@ You can also access the auto-generated API documentation at `http://localhost:30
 - `npm test` - Runs all tests
 - `npm run test:watch` - Runs tests in watch mode
 - `npm run test:unit` - Runs unit tests only
-- `npm run test:integration` - Runs integration tests only (**requires test environment variables**)
+- `npm run test:integration` - Runs integration tests only (requires test environment variables)
 - `npm run test:integration:watch` - Runs integration tests in watch mode
 - `npm run test:coverage` - Generate coverage report
 - `npm run test:integration:coverage` - Generate coverage for integration tests
