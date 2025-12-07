@@ -2,11 +2,17 @@
   "name": "jagawarung-backend",
   "version": "1.0.0",
   "description": "Backend API for Jagawarung using Node.js, TypeScript, Express, and Supabase",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "lint:check": "eslint src/ --max-warnings=0",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -14,7 +20,7 @@
     "test:integration": "jest --testPathPatterns=integration",
     "test:integration:watch": "jest --testPathPatterns=integration --watch",
     "test:integration:coverage": "jest --testPathPatterns=integration --coverage",
-    "prepare": "node -e \"try { require.resolve('husky') } catch (e) { process.exit(0) }; require('child_process').execSync('husky', { stdio: 'inherit' })\""
+    "prepare": "husky"
   },
   "keywords": [
     "nodejs",
@@ -41,9 +47,15 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/supertest": "^6.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.48.1",
+    "@typescript-eslint/parser": "^8.48.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
     "nodemon": "^3.0.2",
+    "prettier": "^3.7.4",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",

@@ -93,11 +93,13 @@ cp .env.example .env
 ```
 
 Update the `.env` file with your Supabase project details:
+
 - `SUPABASE_URL`: Your Supabase project URL
 - `SUPABASE_ANON_KEY`: Your Supabase anonymous key
 - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key (for admin operations)
 
 Configure AI provider credentials (Kolosal AI - OpenAI-compatible):
+
 - `AI_PROVIDER`: Provider identifier (default: `openai-compatible`)
 - `AI_BASE_URL`: Base URL for the AI API (default: Kolosal AI endpoint)
 - `AI_API_KEY`: API key for the AI provider
@@ -180,12 +182,15 @@ Visit `http://localhost:3000/health` to check if the server is running.
 ## 🔌 API Endpoints
 
 ### Health Check
+
 - `GET /health` - Check server status
 
 ### Authentication
+
 - `POST /api/auth/login` - User login
 
 ### Transactions
+
 - `GET /api/transactions` - Get all transactions
 - `GET /api/transactions/:id` - Get transaction by ID
 - `POST /api/transactions` - Create a new transaction
@@ -193,6 +198,7 @@ Visit `http://localhost:3000/health` to check if the server is running.
 - `DELETE /api/transactions/:id` - Delete a transaction
 
 ### AI Agent
+
 - `POST /api/agent/transactions` - Send a prompt to the AI agent with function calling capabilities for database operations related to transactions
 
 ## 🔐 Authentication
