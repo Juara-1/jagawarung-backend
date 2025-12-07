@@ -34,6 +34,16 @@ export const cleanTestData = async (client: SupabaseClient): Promise<void> => {
     await client.from('transactions').delete().gte('id', '00000000-0000-0000-0000-000000000000');
     await client.from('debts').delete().gte('id', '00000000-0000-0000-0000-000000000000');
 
+    // Clean up test users from auth (users with test email pattern)
+    const { data: users } = await client.auth.admin.listUsers();
+    if (users?.users) {
+      for (const user of users.users) {
+        if (user.email?.includes('test-') && user.email?.includes('@example.com')) {
+          await client.auth.admin.deleteUser(user.id);
+        }
+      }
+    }
+
     console.log('Test data cleaned successfully');
   } catch (error) {
     console.error('Error cleaning test data:', error);

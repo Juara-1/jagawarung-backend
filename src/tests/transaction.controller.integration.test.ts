@@ -26,7 +26,7 @@ describe('Transaction Controller Integration Tests', () => {
       await testSetup.client.from('transactions').delete().gte('id', '00000000-0000-0000-0000-000000000000');
     });
 
-    it('should create a spending transaction', async () => {
+    it('should return 401 without authentication', async () => {
       const transactionData = {
         nominal: 50000,
         type: 'spending',
@@ -34,6 +34,20 @@ describe('Transaction Controller Integration Tests', () => {
       };
 
       const response = await request(app)
+        .post('/api/transactions')
+        .send(transactionData);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should create a spending transaction', async () => {
+      const transactionData = {
+        nominal: 50000,
+        type: 'spending',
+        note: 'Groceries shopping'
+      };
+
+      const response = await testSetup.authRequest
         .post('/api/transactions')
         .send(transactionData);
 
@@ -64,7 +78,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Freelance payment'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .post('/api/transactions')
         .send(transactionData);
 
@@ -82,7 +96,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Borrowed for lunch'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .post('/api/transactions')
         .set('Content-Type', 'application/json')
         .send(transactionData);
@@ -99,7 +113,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Missing debtor name'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .post('/api/transactions')
         .send(transactionData);
 
@@ -112,7 +126,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Missing nominal'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .post('/api/transactions')
         .send(transactionData);
 
@@ -126,7 +140,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Negative nominal'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .post('/api/transactions')
         .send(transactionData);
 
@@ -140,7 +154,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Invalid type'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .post('/api/transactions')
         .send(transactionData);
 
@@ -156,7 +170,7 @@ describe('Transaction Controller Integration Tests', () => {
         invoice_data: { vendor: 'Office Mart', items: ['Pens', 'Paper'] }
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .post('/api/transactions')
         .send(transactionData);
 
@@ -180,7 +194,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'First debt'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .post('/api/transactions')
         .query({ upsert: 'true' })
         .send(transactionData);
@@ -202,7 +216,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Initial debt'
       };
 
-      const createResponse = await request(app)
+      const createResponse = await testSetup.authRequest
         .post('/api/transactions')
         .send(initialDebt);
 
@@ -217,7 +231,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Additional debt'
       };
 
-      const upsertResponse = await request(app)
+      const upsertResponse = await testSetup.authRequest
         .post('/api/transactions')
         .query({ upsert: 'true' })
         .send(additionalDebt);
@@ -241,7 +255,7 @@ describe('Transaction Controller Integration Tests', () => {
       const debtorName = `Case Test ${Date.now()}`;
 
       // Create initial debt with lowercase
-      await request(app)
+      await testSetup.authRequest
         .post('/api/transactions')
         .send({
           nominal: 100000,
@@ -251,7 +265,7 @@ describe('Transaction Controller Integration Tests', () => {
         });
 
       // Upsert with uppercase - should match
-      const upsertResponse = await request(app)
+      const upsertResponse = await testSetup.authRequest
         .post('/api/transactions')
         .query({ upsert: 'true' })
         .send({
@@ -269,7 +283,7 @@ describe('Transaction Controller Integration Tests', () => {
       const debtorName = `Update Fields ${Date.now()}`;
 
       // Create initial debt
-      await request(app)
+      await testSetup.authRequest
         .post('/api/transactions')
         .send({
           nominal: 100000,
@@ -279,7 +293,7 @@ describe('Transaction Controller Integration Tests', () => {
         });
 
       // Upsert with new note and invoice
-      const upsertResponse = await request(app)
+      const upsertResponse = await testSetup.authRequest
         .post('/api/transactions')
         .query({ upsert: 'true' })
         .send({
@@ -300,7 +314,7 @@ describe('Transaction Controller Integration Tests', () => {
       const debtorName = `No Upsert ${Date.now()}`;
 
       // Create initial debt
-      await request(app)
+      await testSetup.authRequest
         .post('/api/transactions')
         .send({
           nominal: 100000,
@@ -310,7 +324,7 @@ describe('Transaction Controller Integration Tests', () => {
         });
 
       // Try to create another without upsert - should fail due to unique constraint
-      const secondResponse = await request(app)
+      const secondResponse = await testSetup.authRequest
         .post('/api/transactions')
         .send({
           nominal: 50000,
@@ -325,7 +339,7 @@ describe('Transaction Controller Integration Tests', () => {
 
     it('should not apply upsert for non-debt transactions', async () => {
       // Create initial spending
-      const createResponse = await request(app)
+      const createResponse = await testSetup.authRequest
         .post('/api/transactions')
         .send({
           nominal: 100000,
@@ -336,7 +350,7 @@ describe('Transaction Controller Integration Tests', () => {
       expect(createResponse.status).toBe(201);
 
       // Create another spending with upsert - should create new record
-      const upsertResponse = await request(app)
+      const upsertResponse = await testSetup.authRequest
         .post('/api/transactions')
         .query({ upsert: 'true' })
         .send({
@@ -365,8 +379,15 @@ describe('Transaction Controller Integration Tests', () => {
       ]);
     });
 
-    it('should return paginated transactions with defaults', async () => {
+    it('should return 401 without authentication', async () => {
       const response = await request(app)
+        .get('/api/transactions');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return paginated transactions with defaults', async () => {
+      const response = await testSetup.authRequest
         .get('/api/transactions');
 
       expect(response.status).toBe(200);
@@ -380,7 +401,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should return paginated transactions with custom page and per_page', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ page: '1', per_page: '2' });
 
@@ -392,7 +413,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should filter transactions by type', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ type: 'spending' });
 
@@ -404,7 +425,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should filter transactions by multiple types', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ type: 'spending,earning' });
 
@@ -413,7 +434,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should filter transactions by note (case-insensitive)', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ note: 'SPENDING' });
 
@@ -422,7 +443,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should sort transactions by nominal ascending', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ order_by: 'nominal', order_direction: 'asc' });
 
@@ -432,7 +453,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should sort transactions by nominal descending', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ order_by: 'nominal', order_direction: 'desc' });
 
@@ -442,7 +463,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should return empty array when no transactions match', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ note: 'nonexistent' });
 
@@ -452,7 +473,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should return 400 for invalid order_by value', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ order_by: 'invalid_field' });
 
@@ -460,7 +481,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should return 400 for invalid order_direction value', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ order_direction: 'invalid_direction' });
 
@@ -468,7 +489,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should return 400 for invalid type filter value', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ type: 'invalid_type' });
 
@@ -476,7 +497,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should return 400 for invalid created_from date format', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ created_from: 'not-a-date' });
 
@@ -484,7 +505,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should return 400 for invalid created_to date format', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions')
         .query({ created_to: 'invalid-date' });
 
@@ -507,8 +528,16 @@ describe('Transaction Controller Integration Tests', () => {
       ]);
     });
 
-    it('should return transaction summary for day', async () => {
+    it('should return 401 without authentication', async () => {
       const response = await request(app)
+        .get('/api/transactions/summary')
+        .query({ time_range: 'day' });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return transaction summary for day', async () => {
+      const response = await testSetup.authRequest
         .get('/api/transactions/summary')
         .query({ time_range: 'day' });
 
@@ -522,7 +551,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should return transaction summary for week', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions/summary')
         .query({ time_range: 'week' });
 
@@ -533,7 +562,7 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should return transaction summary for month', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions/summary')
         .query({ time_range: 'month' });
 
@@ -544,14 +573,14 @@ describe('Transaction Controller Integration Tests', () => {
     });
 
     it('should return 400 when time_range is missing', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions/summary');
 
       expectErrorResponse(response, 400);
     });
 
     it('should return 400 for invalid time_range', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .get('/api/transactions/summary')
         .query({ time_range: 'year' });
 
@@ -578,7 +607,7 @@ describe('Transaction Controller Integration Tests', () => {
       testTransactionId = data.id;
     });
 
-    it('should update a transaction by ID', async () => {
+    it('should return 401 without authentication', async () => {
       const updateData = {
         nominal: 75000,
         type: 'spending',
@@ -586,6 +615,20 @@ describe('Transaction Controller Integration Tests', () => {
       };
 
       const response = await request(app)
+        .put(`/api/transactions/${testTransactionId}`)
+        .send(updateData);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should update a transaction by ID', async () => {
+      const updateData = {
+        nominal: 75000,
+        type: 'spending',
+        note: 'Updated note'
+      };
+
+      const response = await testSetup.authRequest
         .put(`/api/transactions/${testTransactionId}`)
         .send(updateData);
 
@@ -611,7 +654,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Changed to earning'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .put(`/api/transactions/${testTransactionId}`)
         .send(updateData);
 
@@ -635,7 +678,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Changed to debt'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .put(`/api/transactions/${testTransactionId}`)
         .set('Content-Type', 'application/json')
         .send(updateData);
@@ -652,7 +695,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Updated note'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .put(`/api/transactions/${nonExistentId}`)
         .send(updateData);
 
@@ -666,7 +709,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Updated note'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .put('/api/transactions/invalid-uuid')
         .send(updateData);
 
@@ -679,7 +722,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Missing nominal'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .put(`/api/transactions/${testTransactionId}`)
         .send(updateData);
 
@@ -693,7 +736,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Invalid type'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .put(`/api/transactions/${testTransactionId}`)
         .send(updateData);
 
@@ -707,7 +750,7 @@ describe('Transaction Controller Integration Tests', () => {
         note: 'Missing debtor_name'
       };
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .put(`/api/transactions/${testTransactionId}`)
         .send(updateData);
 
@@ -734,8 +777,15 @@ describe('Transaction Controller Integration Tests', () => {
       testTransactionId = data.id;
     });
 
-    it('should delete a transaction by ID', async () => {
+    it('should return 401 without authentication', async () => {
       const response = await request(app)
+        .delete(`/api/transactions/${testTransactionId}`);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should delete a transaction by ID', async () => {
+      const response = await testSetup.authRequest
         .delete(`/api/transactions/${testTransactionId}`);
 
       expectSuccessResponse(response);
@@ -753,14 +803,14 @@ describe('Transaction Controller Integration Tests', () => {
     it('should return 404 for non-existent transaction', async () => {
       const nonExistentId = '00000000-0000-0000-0000-000000000000';
 
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .delete(`/api/transactions/${nonExistentId}`);
 
       expectErrorResponse(response, 404);
     });
 
     it('should return 400 for invalid UUID format', async () => {
-      const response = await request(app)
+      const response = await testSetup.authRequest
         .delete('/api/transactions/invalid-uuid');
 
       // This may return 400 or 404 depending on implementation
