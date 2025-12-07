@@ -2,6 +2,21 @@
 
 Backend API for Jagawarung built with Node.js, TypeScript, Express, and Supabase.
 
+## 📋 Contents
+
+- [🌐 Live API](#-live-api)
+- [🏆 Hackathon Scoring Criteria](#-hackathon-scoring-criteria)
+- [🚀 Tech Stack](#-tech-stack)
+- [📁 Project Structure](#-project-structure)
+- [🛠️ Setup Instructions](#️-setup-instructions)
+- [🧪 Testing & Coverage Reporting](#-testing--coverage-reporting)
+- [📝 Available Scripts](#-available-scripts)
+- [🔌 API Endpoints](#-api-endpoints)
+- [🔐 Authentication](#-authentication)
+- [📦 Adding New Features](#-adding-new-features)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+
 ## 🌐 Live API
 
 The Backend API is deployed and can be accessed at: **https://jagawarung-backend.onrender.com/**
