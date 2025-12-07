@@ -1,5 +1,3 @@
-import { Debt } from '../../models/debt.model';
-
 // Mock Supabase client
 export const mockSupabase = {
   from: jest.fn(() => ({
@@ -19,13 +17,4 @@ export const mockSupabase = {
       select: jest.fn(),
     })),
   })),
-};
-
-// Mock response data
-export const mockDebt: Debt = {
-  id: 'test-id',
-  debtor_name: 'Test User',
-  total_nominal: 50000,
-  created_at: '2025-12-05T00:00:00.000Z',
-  updated_at: '2025-12-05T00:00:00.000Z',
 };
