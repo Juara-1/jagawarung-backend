@@ -288,7 +288,42 @@ You can also access the auto-generated API documentation at `http://localhost:30
 
 
 ## Testing & Coverage Reporting
+
+This project uses Jest for comprehensive testing with high coverage. The test suite includes both unit tests and integration tests to ensure code quality and functionality.
+
+### Running Tests
+
+Before running tests, ensure the following prerequisites are met:
+
+1. **Configure Test Environment Variables**
+   - Set `SUPABASE_TEST_URL`, `SUPABASE_TEST_ANON_KEY`, and `SUPABASE_TEST_SERVICE_ROLE_KEY` in your `.env` file
+   - These variables connect to a separate test database to avoid affecting production data
+
+2. **Set Up Test Database**
+   - Ensure your Supabase test database already has the `transactions` table created
+   - Run the SQL from the setup instructions in your test database
+
+3. **Run Tests with Coverage**
+   ```bash
+   npm run test:coverage
+   ```
+   This command will:
+   - Run all tests (unit and integration)
+   - Generate a detailed coverage report
+   - Automatically open the coverage report in your local browser
+
+### Coverage Report
+
+The coverage report provides detailed insights into:
+- **Statements**: Which lines of code are executed
+- **Branches**: Which conditional branches are tested
+- **Functions**: Which functions are called
+- **Lines**: Line-by-line coverage analysis
+
+Current coverage: **Very Good%** ✅
+
 <img width="1919" height="729" alt="image" src="https://github.com/user-attachments/assets/dd4c00ae-1d91-42fe-9764-a0b2e24ed7f1" />
+
 
 
 ## 📝 Available Scripts
