@@ -175,13 +175,20 @@ jagawarung-backend/
 
 ## 🛠️ Setup Instructions
 
-### 1. Install Dependencies
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Juara-1/jagawarung-backend.git
+cd jagawarung-backend
+```
+
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Configure Environment Variables
+### 3. Configure Environment Variables
 
 Copy `.env.example` to `.env` and fill in your Supabase credentials:
 
@@ -203,7 +210,7 @@ Configure AI provider credentials (Kolosal AI - OpenAI-compatible):
 - `AI_MODEL`: Default model (e.g., `gpt-4o-mini`)
 - `AI_REQUEST_TIMEOUT_MS`: Optional timeout in ms (default: 30000)
 
-### 3. Configure Testing Environment Variables
+### 4. Configure Testing Environment Variables
 
 For running integration tests safely without affecting production data, configure the test-specific environment variables:
 
@@ -213,7 +220,7 @@ For running integration tests safely without affecting production data, configur
 
 > **Note:** These variables are used by the test suite to connect to a separate Supabase test project, ensuring that integration tests run in isolation and don't interfere with your production database. This is essential for maintaining data integrity during development and CI/CD processes.
 
-### 4. Create Supabase Tables
+### 5. Create Supabase Tables
 
 Run this SQL in your Supabase SQL Editor.:
 
@@ -264,7 +271,7 @@ CREATE INDEX idx_transactions_debtor_name ON transactions(debtor_name) WHERE deb
 --   USING (auth.uid() IS NOT NULL);
 ```
 
-### 5. Run the Development Server
+### 6. Run the Development Server
 
 ```bash
 npm run dev
@@ -272,7 +279,7 @@ npm run dev
 
 The server will start on `http://localhost:3000`
 
-### 6. Test the API
+### 7. Test the API
 
 Visit `http://localhost:3000/health` to check if the server is running.
 
@@ -289,13 +296,13 @@ You can also access the auto-generated API documentation at `http://localhost:30
 - `npm run dev` - Start development server with hot reload
 - `npm run build` - Build for production
 - `npm start` - Start production server
-- `npm test` - Runs all tests
+- `npm test` - Runs all tests (requires test environment variables)
 - `npm run test:watch` - Runs tests in watch mode
 - `npm run test:unit` - Runs unit tests only
-- `npm run test:integration` - Runs integration tests only (requires test environment variables, uses Jest)
+- `npm run test:integration` - Runs integration tests only (requires test environment variables)
 - `npm run test:integration:watch` - Runs integration tests in watch mode
-- `npm run test:coverage` - Generate coverage report with Jest
-- `npm run test:integration:coverage` - Generate coverage for integration tests
+- `npm run test:coverage` - Generate coverage report
+- `npm run test:integration:coverage` - Generate coverage for integration tests (requires test environment variables)
 
 ## 🔌 API Endpoints
 
