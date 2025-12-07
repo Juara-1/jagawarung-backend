@@ -66,10 +66,17 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check
 /**
+ * Health check response
+ * @typedef {object} HealthCheckResponse
+ * @property {string} status - Health status (always "ok")
+ * @property {string} timestamp - Current server timestamp in ISO 8601 format
+ */
+
+/**
  * GET /health
  * @summary Health check endpoint
  * @tags System
- * @return {object} 200 - success response
+ * @return {HealthCheckResponse} 200 - Server is healthy
  */
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
